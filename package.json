@@ -1,0 +1,19 @@
+{
+  "name": "campuskart",
+  "version": "1.0.0",
+  "description": "CampusKart full stack application",
+  "main": "index.js",
+  "scripts": {
+    "start": "npm start --prefix server",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "build": "npm install --include=dev --prefix client && npm run build --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
