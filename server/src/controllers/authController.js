@@ -20,11 +20,14 @@ const registerUser = async (req, res) => {
             return res.status(400).json({ message: 'User already exists' });
         }
 
+        const isApprovedReq = (role === 'user' || role === 'admin');
+
         const user = await User.create({
             name,
             email,
             password,
             role,
+            isApproved: isApprovedReq,
         });
 
         if (user) {
@@ -63,6 +66,9 @@ const loginUser = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (user && (await user.matchPassword(password))) {
+            if (!user.isApproved) {
+                return res.status(403).json({ message: 'Your account is pending admin approval' });
+            }
             res.json({
                 _id: user._id,
                 name: user.name,

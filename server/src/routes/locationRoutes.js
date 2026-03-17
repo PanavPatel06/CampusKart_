@@ -5,9 +5,9 @@ const { protect, authorize } = require('../middleware/authMiddleware');
 
 router.route('/')
     .get(getLocations)
-    .post(protect, authorize('admin'), addLocation);
+    .post(protect, authorize('admin', 'vendor'), addLocation);
 
 router.route('/:id')
-    .delete(protect, authorize('admin'), deleteLocation);
+    .delete(protect, authorize('admin', 'vendor'), deleteLocation);
 
 module.exports = router;

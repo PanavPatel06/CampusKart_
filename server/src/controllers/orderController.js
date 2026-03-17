@@ -12,6 +12,7 @@ const addOrderItems = async (req, res) => {
         orderItems,
         vendorId,
         totalPrice,
+        groupId,
     } = req.body;
 
     console.log('[addOrderItems] Request Body:', JSON.stringify(req.body, null, 2));
@@ -55,6 +56,7 @@ const addOrderItems = async (req, res) => {
             const order = new Order({
                 customer: req.user._id,
                 vendor: vendorId,
+                groupId: groupId || null,
                 items: orderItems,
                 totalAmount: totalPrice,
                 status: 'pending',
@@ -98,8 +100,26 @@ const addOrderItems = async (req, res) => {
 // @route   GET /api/orders/myorders
 // @access  Private
 const getMyOrders = async (req, res) => {
-    const orders = await Order.find({ customer: req.user._id }).sort({ createdAt: -1 });
+    const orders = await Order.find({ customer: req.user._id, clearedByCustomer: false }).sort({ createdAt: -1 });
     res.json(orders);
+};
+
+// @desc    Clear user's completed or cancelled orders
+// @route   PUT /api/orders/myorders/clear
+// @access  Private
+const clearMyOrders = async (req, res) => {
+    try {
+        await Order.updateMany(
+            { 
+                customer: req.user._id, 
+                status: { $in: ['delivered', 'cancelled', 'rejected'] } 
+            },
+            { $set: { clearedByCustomer: true } }
+        );
+        res.json({ message: 'Order history cleared successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
 
 // @desc    Get vendor orders
@@ -332,6 +352,7 @@ const getMyDeliveries = async (req, res) => {
 module.exports = {
     addOrderItems,
     getMyOrders,
+    clearMyOrders,
     getVendorOrders,
     updateOrderStatus,
     getAvailableDeliveryOrders,

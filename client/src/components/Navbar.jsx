@@ -29,13 +29,13 @@ function ProfileDropdown({ user, onLogout, showCart, showDelivery }) {
                 <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                     {initials}
                 </div>
-                <div className="hidden sm:flex flex-col items-start leading-tight">
+                <div className="flex flex-col items-start leading-tight">
                     <span className="text-sm font-semibold text-gray-800 max-w-[100px] truncate">{user.name}</span>
                     <span className={`text-[10px] font-bold px-1.5 rounded-full capitalize mt-0.5 ${ROLE_PILL[user.role] || ROLE_PILL.user}`}>
                         {user.role}
                     </span>
                 </div>
-                <svg className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`hidden sm:block w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
@@ -74,73 +74,7 @@ function ProfileDropdown({ user, onLogout, showCart, showDelivery }) {
     );
 }
 
-// ─── Mobile Drawer ─────────────────────────────────────────────────────────
-function MobileMenu({ open, onClose, user, cartCount, onLogout, showCart, showDelivery }) {
-    if (!open) return null;
-    return (
-        <>
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50" onClick={onClose} />
-            <div className="fixed inset-y-0 right-0 w-72 bg-white z-50 shadow-2xl flex flex-col animate-slideDown">
-                <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-                    <span className="text-xl font-black text-gray-900">Campus<span className="text-orange-500">Kart</span></span>
-                    <button onClick={onClose} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
-                        <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-                {user && (
-                    <div className="px-5 py-4 bg-gradient-to-br from-orange-50 to-white border-b border-gray-100">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center text-white text-sm font-bold">
-                                {user.name?.slice(0,2).toUpperCase()}
-                            </div>
-                            <div>
-                                <p className="font-bold text-sm text-gray-900">{user.name}</p>
-                                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${ROLE_PILL[user.role] || ROLE_PILL.user}`}>{user.role}</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                <nav className="flex-1 py-2">
-                    {user ? (
-                        <>
-                            {[
-                                { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-                                ...(user.role !== 'agent' ? [{ to: '/products',  icon: '🛍️', label: 'Browse Products' }] : []),
-                                ...(showCart ? [{ to: '/cart', icon: '🛒', label: 'Cart', badge: cartCount }] : []),
-                                ...(showDelivery ? [{ to: '/delivery', icon: '🚚', label: 'Delivery Hub' }] : []),
-                            ].map(item => (
-                                <Link key={item.to} to={item.to} onClick={onClose}
-                                    className="flex items-center gap-4 px-5 py-3.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-                                    <span className="text-lg">{item.icon}</span>
-                                    {item.label}
-                                    {item.badge > 0 && (
-                                        <span className="ml-auto bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{item.badge}</span>
-                                    )}
-                                </Link>
-                            ))}
-                        </>
-                    ) : (
-                        <div className="px-5 py-4 space-y-2">
-                            <Link to="/login" onClick={onClose} className="block w-full text-center py-2.5 bg-orange-500 text-white font-semibold rounded-xl hover:bg-orange-600 transition-colors">Sign In</Link>
-                            <Link to="/register" onClick={onClose} className="block w-full text-center py-2.5 bg-white border border-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-50 transition-colors">Register</Link>
-                        </div>
-                    )}
-                </nav>
-                {user && (
-                    <div className="px-5 py-4 border-t border-gray-100">
-                        <button onClick={() => { onLogout(); onClose(); }} className="flex items-center gap-3 text-sm font-semibold text-red-600 hover:text-red-700 transition-colors">
-                            <span>🚪</span> Log out
-                        </button>
-                    </div>
-                )}
-            </div>
-        </>
-    );
-}
-
-// ─── Navbar ────────────────────────────────────────────────────────────────
+// Removed MobileMenu
 const Navbar = () => {
     // ← same context usage as original
     const { user, logout } = useContext(AuthContext);
@@ -179,7 +113,7 @@ const Navbar = () => {
 
                         {/* Desktop nav links */}
                         {user && (
-                            <nav className="hidden md:flex items-center gap-1 ml-2" aria-label="Main navigation">
+                            <nav className="flex items-center gap-1 ml-2" aria-label="Main navigation">
                                 {[
                                     { to: '/dashboard', label: 'Dashboard' },
                                     ...(user.role !== 'agent' ? [{ to: '/products',  label: 'Browse' }] : []),
@@ -218,7 +152,7 @@ const Navbar = () => {
                                     <ProfileDropdown user={user} onLogout={handleLogout} showCart={showCart} showDelivery={showDelivery} />
                                 </>
                             ) : (
-                                <div className="hidden sm:flex items-center gap-2">
+                                <div className="flex items-center gap-2">
                                     <Link to="/login"
                                         className="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
                                         Sign In
@@ -229,31 +163,10 @@ const Navbar = () => {
                                     </Link>
                                 </div>
                             )}
-
-                            {/* Hamburger */}
-                            <button
-                                onClick={() => setMobileOpen(true)}
-                                className="md:hidden p-2.5 rounded-xl hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
-                                aria-label="Open menu"
-                            >
-                                <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                                </svg>
-                            </button>
                         </div>
                     </div>
                 </div>
             </header>
-
-            <MobileMenu
-                open={mobileOpen}
-                onClose={() => setMobileOpen(false)}
-                user={user}
-                cartCount={cartCount}
-                onLogout={handleLogout}
-                showCart={showCart}
-                showDelivery={showDelivery}
-            />
         </>
     );
 };

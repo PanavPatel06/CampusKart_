@@ -28,6 +28,7 @@ const orderSchema = new mongoose.Schema({
             fileUrl: { type: String },
             printOptions: {
                 color: { type: String, enum: ['bw', 'color'], default: 'bw' },
+                sided: { type: String, enum: ['single', 'double'], default: 'single' },
                 pages: { type: Number },
                 copies: { type: Number, default: 1 },
             },
@@ -61,6 +62,13 @@ const orderSchema = new mongoose.Schema({
     deliveryLocation: {
         type: String,
         required: true
+    },
+    groupId: {
+        type: String,
+    },
+    clearedByCustomer: {
+        type: Boolean,
+        default: false
     }
 }, {
     timestamps: true,

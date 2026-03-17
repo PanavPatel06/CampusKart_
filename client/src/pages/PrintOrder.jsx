@@ -22,7 +22,7 @@ const PrintOrder = () => {
     const [locations,     setLocations]     = useState([]);
     const [deliveryLocation, setDeliveryLocation] = useState('');
     const [walletBalance, setWalletBalance] = useState(0);
-    const [printOptions,  setPrintOptions]  = useState({ color: 'bw', pages: 1, copies: 1 });
+    const [printOptions,  setPrintOptions]  = useState({ color: 'bw', sided: 'single', pages: 1, copies: 1 });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -42,6 +42,10 @@ const PrintOrder = () => {
 
     const handleUpload = async () => {
         if (!file) return;
+        if (file.size > 100 * 1024 * 1024) {
+            alert('File size exceeds the 100MB limit.');
+            return;
+        }
         const formData = new FormData();
         formData.append('file', file);
         try {
@@ -54,7 +58,17 @@ const PrintOrder = () => {
         } finally { setUploading(false); }
     };
 
-    const estimatedCost = (printOptions.color === 'color' ? 10 : 2) * printOptions.pages * printOptions.copies;
+    const getPricePerSheet = () => {
+        let basePrice = printOptions.color === 'color' ? 10 : 2;
+        // Adjust price if double-sided. For example, 1.5x the base price per sheet
+        if (printOptions.sided === 'double') {
+            basePrice = printOptions.color === 'color' ? 15 : 3;
+        }
+        return basePrice;
+    }
+    
+    const pricePerSheet = getPricePerSheet();
+    const estimatedCost = pricePerSheet * printOptions.pages * printOptions.copies;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -65,7 +79,6 @@ const PrintOrder = () => {
             alert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${estimatedCost}`);
             return;
         }
-        const pricePerSheet = printOptions.color === 'color' ? 10 : 2;
         const orderData = {
             orderItems: [{ name: 'Print Job - ' + file.name, price: pricePerSheet, qty: printOptions.copies, fileUrl, printOptions }],
             totalPrice: estimatedCost,
@@ -132,10 +145,19 @@ const PrintOrder = () => {
                             <input type="file" accept="application/pdf" onChange={handleFileChange} className="sr-only" />
                             <span className="text-4xl">{fileUrl ? '✅' : '📄'}</span>
                             <div className="text-center">
-                                <p className="font-semibold text-sm text-gray-700">{fileUrl ? file?.name : 'Click to select PDF'}</p>
-                                <p className="text-xs text-gray-400 mt-0.5">{fileUrl ? 'Uploaded & ready' : 'PDF only, max 5MB'}</p>
+                                <p className="font-semibold text-sm text-gray-700">{fileUrl ? file?.name : (file ? file.name : 'Click to select PDF')}</p>
+                                <p className="text-xs text-gray-400 mt-0.5">{fileUrl ? 'Uploaded & ready' : 'PDF only, max 100MB'}</p>
                             </div>
                         </label>
+                        {fileUrl && (
+                            <div className="mt-4 border rounded-xl overflow-hidden bg-gray-50">
+                                <div className="p-2 border-b bg-gray-100 flex justify-between items-center">
+                                    <span className="text-xs font-semibold text-gray-600">PDF Preview</span>
+                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="text-xs text-orange-600 hover:text-orange-700 font-semibold">Open Fullscreen</a>
+                                </div>
+                                <iframe src={`${fileUrl}#view=FitH`} className="w-full h-96" title="PDF Preview" />
+                            </div>
+                        )}
                         {file && !fileUrl && (
                             <button type="button" onClick={handleUpload} disabled={uploading}
                                 className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-sm rounded-xl transition-colors disabled:opacity-50">
@@ -147,26 +169,41 @@ const PrintOrder = () => {
 
                     {/* Print Options */}
                     <Section title="Print Options" number={3}>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <p className="text-sm font-semibold text-gray-700 mb-2">Color Mode</p>
                                 <div className="flex gap-2">
-                                    {[['bw', '⬛ B&W', 2], ['color', '🌈 Color', 10]].map(([val, label, price]) => (
+                                    {[['bw', '⬛ B&W'], ['color', '🌈 Color']].map(([val, label]) => (
                                         <button key={val} type="button"
                                             onClick={() => setPrintOptions({ ...printOptions, color: val })}
                                             className={cn('flex-1 py-2.5 px-2 text-xs font-bold rounded-xl border-2 transition-all',
                                                 printOptions.color === val ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300')}>
                                             {label}
-                                            <span className="block text-[10px] font-normal mt-0.5 opacity-70">₹{price}/page</span>
                                         </button>
                                     ))}
                                 </div>
                             </div>
+                            <div>
+                                <p className="text-sm font-semibold text-gray-700 mb-2">Print Sides</p>
+                                <div className="flex gap-2">
+                                    {[['single', '📄 Single Sided'], ['double', '📄📄 Double Sided']].map(([val, label]) => (
+                                        <button key={val} type="button"
+                                            onClick={() => setPrintOptions({ ...printOptions, sided: val })}
+                                            className={cn('flex-1 py-2.5 px-2 text-xs font-bold rounded-xl border-2 transition-all',
+                                                printOptions.sided === val ? 'border-orange-400 bg-orange-50 text-orange-700' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300')}>
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <StyledNumberInput label="Pages" value={printOptions.pages}
                                 onChange={(e) => setPrintOptions({ ...printOptions, pages: parseInt(e.target.value) || 1 })} />
                             <StyledNumberInput label="Copies" value={printOptions.copies}
                                 onChange={(e) => setPrintOptions({ ...printOptions, copies: parseInt(e.target.value) || 1 })} />
                         </div>
+                        <p className="text-xs text-gray-500 mt-2 text-right">Price per sheet: ₹{pricePerSheet}</p>
                     </Section>
 
                     {/* Summary + Submit */}
@@ -176,7 +213,7 @@ const PrintOrder = () => {
                                 {[
                                     ['Vendor',    vendors.find(v => v._id === vendorId)?.storeName || '—'],
                                     ['Delivery',  deliveryLocation || '—'],
-                                    ['Mode',      printOptions.color === 'color' ? '🌈 Color' : '⬛ B&W'],
+                                    ['Mode & sides', `${printOptions.color === 'color' ? '🌈 Color' : '⬛ B&W'} • ${printOptions.sided === 'single' ? 'Single Sided' : 'Double Sided'}`],
                                     ['Pages × Copies', `${printOptions.pages} × ${printOptions.copies}`],
                                 ].map(([k,v]) => (
                                     <div key={k} className="bg-gray-50 rounded-xl p-3">

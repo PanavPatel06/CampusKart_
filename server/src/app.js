@@ -6,6 +6,7 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const vendorRoutes = require('./routes/vendorRoutes');
 const locationRoutes = require('./routes/locationRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 const path = require('path');
 
@@ -21,6 +22,7 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/vendors', vendorRoutes);
 app.use('/api/locations', locationRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/wallet', require('./routes/walletRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
 

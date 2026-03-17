@@ -9,7 +9,6 @@ const ROLES = [
     { value: 'user',   label: 'Student',        icon: '🎓', desc: 'Shop on campus' },
     { value: 'vendor', label: 'Vendor',          icon: '🏪', desc: 'Sell products' },
     { value: 'agent',  label: 'Delivery Agent',  icon: '🛵', desc: 'Deliver orders' },
-    { value: 'admin',  label: 'Admin',           icon: '⚙️', desc: 'Manage platform' },
 ];
 
 const Register = () => {

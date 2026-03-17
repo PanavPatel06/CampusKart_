@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 
 const Cart = () => {
     // ← identical state/logic to original
-    const { cartItems, removeFromCart, clearCart, cartTotal } = useContext(CartContext);
+    const { cartItems, removeFromCart, updateCartItemQty, clearCart, cartTotal } = useContext(CartContext);
     const { user }    = useContext(AuthContext);
     const navigate    = useNavigate();
 
@@ -18,6 +18,7 @@ const Cart = () => {
     const [locations,        setLocations]         = useState([]);
     const [deliveryLocation, setDeliveryLocation]  = useState('');
     const [walletBalance,    setWalletBalance]     = useState(0);
+    const [showConfirm,      setShowConfirm]       = useState(false);
 
     useEffect(() => {
         getLocations().then(({ data }) => setLocations(data)).catch(console.error);
@@ -42,6 +43,12 @@ const Cart = () => {
         if (validItems.length < cartItems.length) {
             alert('Notice: Some items were removed due to invalid vendor data.');
         }
+
+        // Open confirm modal instead of directly placing order
+        setShowConfirm(true);
+    };
+
+    const confirmOrderPlacement = async () => {
         const itemsByVendor = validItems.reduce((acc, item) => {
             const vId = item.vendor?._id || item.vendor;
             if (!acc[vId]) acc[vId] = [];
@@ -72,6 +79,59 @@ const Cart = () => {
 
     const isAffordable = walletBalance >= cartTotal;
 
+    // ─── Modal ─────────────────────────────────────────────────────────────
+    const CheckoutModal = () => {
+        if (!showConfirm) return null;
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+                <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                    <div className="bg-gradient-to-r from-orange-500 to-orange-400 p-6 text-white">
+                        <h3 className="text-xl font-black">Confirm Your Order</h3>
+                        <p className="text-orange-50 text-sm mt-1 opacity-90">Please review your final bill</p>
+                    </div>
+                    <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+                        {/* Location */}
+                        <div className="bg-orange-50 p-3 rounded-xl border border-orange-100 flex gap-3 text-sm">
+                            <span className="text-xl shrink-0">📍</span>
+                            <div>
+                                <p className="font-bold text-gray-900">Delivery Address</p>
+                                <p className="text-gray-600">{deliveryLocation}</p>
+                            </div>
+                        </div>
+                        {/* Items */}
+                        <div className="space-y-2">
+                            <p className="font-bold text-gray-900 text-sm">Order Summary</p>
+                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3">
+                                {validItems.map((item, idx) => (
+                                    <div key={idx} className="flex justify-between items-start text-sm pb-2 border-b border-gray-200/60 last:border-0 last:pb-0">
+                                        <div className="pr-4">
+                                            <p className="font-semibold text-gray-800 leading-tight">{item.name}</p>
+                                            <p className="text-gray-500 text-xs mt-0.5">₹{item.price} × {item.qty}</p>
+                                        </div>
+                                        <span className="font-bold text-gray-900 shrink-0">₹{(item.price * item.qty).toFixed(2)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        {/* Total */}
+                        <div className="flex justify-between items-center py-2 text-lg font-black text-gray-900 border-t-2 border-dashed border-gray-200">
+                            <span>Total Bill</span>
+                            <span className="text-orange-600">₹{cartTotal.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div className="p-6 pt-2 flex gap-3 bg-gray-50">
+                        <button onClick={() => setShowConfirm(false)} className="flex-1 py-3 text-gray-600 font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors">
+                            Cancel
+                        </button>
+                        <button onClick={confirmOrderPlacement} className="flex-1 py-3 text-white font-bold bg-green-500 hover:bg-green-600 shadow-md shadow-green-200 rounded-xl transition-all active:scale-[0.98]">
+                            Confirm Order ✓
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     // ─── Empty state ───────────────────────────────────────────────────────
     if (cartItems.length === 0) {
         return (
@@ -93,6 +153,8 @@ const Cart = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-orange-50/30 to-white">
+            <CheckoutModal />
+            
             {/* Page header */}
             <div className="bg-white border-b border-gray-100 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -132,7 +194,21 @@ const Cart = () => {
                                                 <td className="px-5 py-4 text-sm font-semibold text-gray-900">{item.name}</td>
                                                 <td className="px-5 py-4 text-sm text-gray-600">₹{item.price}</td>
                                                 <td className="px-5 py-4">
-                                                    <span className="inline-flex items-center px-2.5 py-1 bg-gray-100 rounded-lg text-sm font-bold text-gray-800">{item.qty}</span>
+                                                    <div className="inline-flex items-center bg-gray-100 rounded-lg p-1 space-x-2">
+                                                        <button 
+                                                            onClick={() => updateCartItemQty(item.product, item.qty - 1)}
+                                                            className="w-6 h-6 flex items-center justify-center bg-white rounded-md text-gray-600 font-bold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                                        >
+                                                            -
+                                                        </button>
+                                                        <span className="text-sm font-bold text-gray-800 w-4 text-center">{item.qty}</span>
+                                                        <button 
+                                                            onClick={() => updateCartItemQty(item.product, item.qty + 1)}
+                                                            className="w-6 h-6 flex items-center justify-center bg-white rounded-md text-gray-600 font-bold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
                                                 </td>
                                                 <td className="px-5 py-4 text-sm font-bold text-gray-900">₹{item.price * item.qty}</td>
                                                 <td className="px-5 py-4 text-right">
@@ -156,7 +232,14 @@ const Cart = () => {
                                         <div className="w-14 h-14 rounded-xl bg-orange-50 flex items-center justify-center text-2xl shrink-0">🛍️</div>
                                         <div className="flex-1 min-w-0">
                                             <p className="font-bold text-sm text-gray-900 truncate">{item.name}</p>
-                                            <p className="text-xs text-gray-500 mt-0.5">Qty: {item.qty} × ₹{item.price}</p>
+                                            <div className="flex items-center gap-2 mt-1.5">
+                                                <div className="inline-flex items-center bg-gray-100 rounded-lg p-0.5 space-x-1.5">
+                                                    <button onClick={() => updateCartItemQty(item.product, item.qty - 1)} className="w-5 h-5 flex items-center justify-center bg-white rounded text-gray-600 font-bold hover:bg-gray-50">-</button>
+                                                    <span className="text-xs font-bold text-gray-800 w-3 text-center">{item.qty}</span>
+                                                    <button onClick={() => updateCartItemQty(item.product, item.qty + 1)} className="w-5 h-5 flex items-center justify-center bg-white rounded text-gray-600 font-bold hover:bg-gray-50">+</button>
+                                                </div>
+                                                <span className="text-xs text-gray-500">× ₹{item.price}</span>
+                                            </div>
                                         </div>
                                         <div className="flex flex-col items-end gap-1.5 shrink-0">
                                             <span className="font-black text-gray-900 text-sm">₹{item.price * item.qty}</span>

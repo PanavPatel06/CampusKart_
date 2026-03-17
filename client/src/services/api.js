@@ -35,6 +35,7 @@ export const createOrder = (orderData) => API.post('/orders', orderData);
 export const getVendorOrders = () => API.get('/orders/vendor');
 
 export const getMyOrders = () => API.get('/orders/myorders');
+export const clearMyOrders = () => API.put('/orders/myorders/clear');
 
 export const getVendors = () => API.get('/vendors');
 
@@ -68,5 +69,10 @@ export const getSystemEarnings = () => API.get('/wallet/earnings');
 export const getCommissionRates = () => API.get('/wallet/commission');
 export const updateCommissionRates = (rates) => API.put('/wallet/commission', rates);
 export const searchUsers = (query) => API.get(`/wallet/users?search=${query}`);
+
+// Admin Approvals
+export const getPendingUsers = () => API.get('/admin/users/pending');
+export const approveUser = (id) => API.put(`/admin/users/${id}/approve`);
+export const rejectUser = (id) => API.delete(`/admin/users/${id}/reject`);
 
 export default API;

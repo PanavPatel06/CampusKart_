@@ -6,8 +6,8 @@ import AuthContext from '../context/AuthContext';
 import {
     getMyOrders, getVendorOrders, updateOrderStatus, getAllOrders,
     getMyDeliveries, getLocations, addLocation, deleteLocation,
-    addFunds, searchUsers, getSystemEarnings, getCommissionRates,
     updateCommissionRates, getMyWallet, getVendorProducts, deleteProduct,
+    clearMyOrders, getPendingUsers, approveUser, rejectUser,
 } from '../services/api';
 import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
@@ -67,7 +67,7 @@ function SectionTitle({ children }) {
 }
 
 // ─── USER SECTION ─────────────────────────────────────────────────────────
-function UserSection({ orders, userWalletBalance, handleStatusUpdate }) {
+function UserSection({ orders, userWalletBalance, handleStatusUpdate, handleClearHistory }) {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -85,7 +85,16 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate }) {
             </Card>
 
             <Card>
-                <SectionTitle>My Orders</SectionTitle>
+                <div className="flex items-center justify-between pl-1 mb-5">
+                    <SectionTitle>My Orders</SectionTitle>
+                    {orders.length > 0 && (
+                        <button onClick={handleClearHistory}
+                            className="inline-flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-red-600 transition-colors uppercase tracking-widest bg-gray-50 hover:bg-red-50 border border-gray-200 hover:border-red-200 px-3 py-1.5 rounded-lg shrink-0"
+                            title="Clear completed/cancelled orders from view">
+                            🗑️ Clear History
+                        </button>
+                    )}
+                </div>
                 {orders.length === 0 ? (
                     <div className="text-center py-10">
                         <div className="text-4xl mb-3 opacity-40">📭</div>
@@ -137,7 +146,11 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate }) {
 }
 
 // ─── VENDOR SECTION ───────────────────────────────────────────────────────
-function VendorSection({ orders, handleStatusUpdate, products, handleDeleteProduct }) {
+function VendorSection({ 
+    orders, handleStatusUpdate, products, handleDeleteProduct,
+    locations, fetchLocations
+}) {
+    const [newLocation, setNewLocation] = useState('');
 
     return (
         <div className="space-y-6">
@@ -183,6 +196,43 @@ function VendorSection({ orders, handleStatusUpdate, products, handleDeleteProdu
                 )}
             </Card>
 
+            <Card>
+                <SectionTitle>Manage Delivery Locations</SectionTitle>
+                <div className="flex gap-2 mb-5">
+                    <input type="text" placeholder="New location (e.g. Hostel A)"
+                        value={newLocation} onChange={e => setNewLocation(e.target.value)}
+                        className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
+                    />
+                    <button onClick={async () => {
+                        if (!newLocation.trim()) return;
+                        try { await addLocation(newLocation.trim()); setNewLocation(''); fetchLocations(); }
+                        catch (e) { alert(e.message); }
+                    }} className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
+                        + Add
+                    </button>
+                </div>
+                {locations?.length === 0 ? (
+                    <p className="text-sm text-gray-400 text-center py-8">No locations added yet</p>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[300px] overflow-y-auto pr-2">
+                        {locations?.map(loc => (
+                            <div key={loc._id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 group">
+                                <span className="text-sm font-medium text-gray-800 flex items-center gap-2">
+                                    <span className="text-gray-400">📍</span>{loc.name}
+                                </span>
+                                <button onClick={async () => {
+                                    if (window.confirm('Delete this location?')) {
+                                        try { await deleteLocation(loc._id); fetchLocations(); }
+                                        catch (e) { alert(e.message); }
+                                    }
+                                }} className="text-red-400 hover:text-red-600 font-bold text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-50">
+                                    ✕
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </Card>
             <Card>
                 <SectionTitle>Incoming Orders</SectionTitle>
                 {orders.length === 0 ? (
@@ -271,11 +321,49 @@ function AdminSection({
     fetchLocations,
 }) {
     const [activeTab, setActiveTab] = useState('orders');
+    const [pendingUsers, setPendingUsers] = useState([]);
+
+    const fetchPendingUsers = async () => {
+        try {
+            const { data } = await getPendingUsers();
+            setPendingUsers(data);
+        } catch (e) {
+            console.error('Failed to fetch pending users');
+        }
+    };
+
+    useEffect(() => {
+        fetchPendingUsers();
+    }, []);
+
+    const handleApprove = async (id) => {
+        try {
+            await approveUser(id);
+            alert('User approved!');
+            fetchPendingUsers();
+        } catch (e) {
+            alert('Error approving user');
+        }
+    };
+
+    const handleReject = async (id) => {
+        if (window.confirm("Are you sure you want to reject and delete this registration?")) {
+            try {
+                await rejectUser(id);
+                alert('User rejected!');
+                fetchPendingUsers();
+            } catch (e) {
+                alert('Error rejecting user');
+            }
+        }
+    };
+
     const tabs = [
         { id: 'orders',    label: 'Orders',      icon: '📦' },
         { id: 'wallet',    label: 'Wallet',      icon: '💰' },
         { id: 'locations', label: 'Locations',   icon: '📍' },
         { id: 'earnings',  label: 'Earnings',    icon: '📈' },
+        { id: 'approvals', label: 'Approvals',   icon: '🛡️' },
     ];
     const [newLocation, setNewLocation] = useState('');
 
@@ -472,13 +560,59 @@ function AdminSection({
                     </Card>
                 </div>
             )}
+
+            {/* ── Approvals tab ── */}
+            {activeTab === 'approvals' && (
+                <Card>
+                    <h3 className="font-bold text-gray-900 mb-5">Pending User Registrations</h3>
+                    {pendingUsers.length === 0 ? (
+                        <p className="text-center py-10 text-gray-400 text-sm">No pending registrations</p>
+                    ) : (
+                        <div className="space-y-3">
+                            {pendingUsers.map(u => (
+                                <div key={u._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-bold text-gray-900">{u.name}</p>
+                                            <span className={cn('px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide', 
+                                                u.role === 'vendor' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                                            )}>{u.role}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-500 mt-0.5">{u.email}</p>
+                                        <p className="text-xs text-gray-400 mt-1">Requested: {new Date(u.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <button onClick={() => handleApprove(u._id)} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-xl transition-colors">
+                                            ✓ Approve
+                                        </button>
+                                        <button onClick={() => handleReject(u._id)} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl transition-colors">
+                                            ✕ Reject
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </Card>
+            )}
         </div>
     );
 }
 
 // ─── AGENT SECTION ────────────────────────────────────────────────────────
-function AgentSection({ deliveries, handleStatusUpdate }) {
+function AgentSection({ deliveries, handleStatusUpdate, user }) {
     const [otpInputs, setOtpInputs] = useState({});
+    const [paymentOrder, setPaymentOrder] = useState(null);
+
+    const handleAcceptDelivery = (order) => {
+        setPaymentOrder(order);
+    };
+
+    const confirmPaymentAndAccept = () => {
+        if (!paymentOrder) return;
+        handleStatusUpdate(paymentOrder._id, 'out_for_delivery');
+        setPaymentOrder(null);
+    };
 
     return (
         <div className="space-y-6">
@@ -506,6 +640,14 @@ function AgentSection({ deliveries, handleStatusUpdate }) {
                                     </div>
                                     <StatusBadge status={order.status} />
                                 </div>
+                                {order.status === 'accepted' && (
+                                    <div className="flex gap-2 border-t border-gray-100 pt-3">
+                                        <button onClick={() => handleAcceptDelivery(order)}
+                                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors w-full">
+                                            Accept Delivery 🛵
+                                        </button>
+                                    </div>
+                                )}
                                 {order.status === 'out_for_delivery' && (
                                     <div className="flex gap-2 border-t border-gray-100 pt-3">
                                         <input type="text" placeholder="Enter OTP from customer"
@@ -514,7 +656,7 @@ function AgentSection({ deliveries, handleStatusUpdate }) {
                                             className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-orange-400"
                                         />
                                         <button onClick={() => handleStatusUpdate(order._id, 'delivered', otpInputs[order._id])}
-                                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-xl transition-colors">
+                                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-xl transition-colors shrink-0">
                                             Mark Delivered ✓
                                         </button>
                                     </div>
@@ -524,6 +666,41 @@ function AgentSection({ deliveries, handleStatusUpdate }) {
                     </div>
                 )}
             </Card>
+
+            {/* Payment Modal */}
+            {paymentOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-white text-center shadow-inner">
+                            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
+                                <span className="text-3xl">💳</span>
+                            </div>
+                            <h3 className="text-xl font-black">Payment Required</h3>
+                            <p className="text-blue-50 text-sm mt-1 opacity-90">Confirm payment to accept this delivery.</p>
+                        </div>
+                        
+                        <div className="p-6 space-y-4 bg-gray-50/50">
+                            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-center">
+                                <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Total Bill</p>
+                                <p className="text-4xl font-black text-gray-900 tracking-tight">₹{paymentOrder.totalAmount}</p>
+                            </div>
+                            
+                            <p className="text-xs text-gray-500 text-center leading-relaxed">
+                                By pressing <span className="font-bold">Pay Money</span>, this amount will be immediately deducted from the customer's wallet and the order will be marked as <span className="font-semibold text-blue-600">Out for Delivery</span>.
+                            </p>
+                        </div>
+
+                        <div className="p-6 pt-0 flex gap-3 bg-gray-50/50">
+                            <button onClick={() => setPaymentOrder(null)} className="flex-1 py-3.5 text-gray-600 font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-100 hover:text-gray-900 transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={confirmPaymentAndAccept} className="flex-1 py-3.5 text-white font-bold bg-green-500 hover:bg-green-600 shadow-md shadow-green-200 rounded-xl transition-all active:scale-[0.98]">
+                                Pay Money 💸
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -564,6 +741,7 @@ const Dashboard = () => {
                 let orderData = []; let deliveryData = [];
                 if (user.role === 'vendor') {
                     const r = await getVendorOrders(); orderData = r.data;
+                    fetchLocations();
                     try { const rp = await getVendorProducts(); setVendorProducts(rp.data); } catch {}
                 } else if (user.role === 'user') {
                     const r = await getMyOrders(); orderData = r.data;
@@ -623,6 +801,17 @@ const Dashboard = () => {
         catch (error) { alert('Failed to update status: ' + (error.response?.data?.message || error.message)); }
     };
 
+    const handleClearHistory = async () => {
+        if (window.confirm('Are you sure you want to clear your completed and cancelled orders from view?')) {
+            try {
+                await clearMyOrders();
+                fetchOrders();
+            } catch (error) {
+                alert('Failed to clear order history: ' + (error.response?.data?.message || error.message));
+            }
+        }
+    };
+
     useEffect(() => { fetchOrders(); }, [user]);
 
     // Listen for live updates via socket
@@ -679,8 +868,8 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                {user.role === 'user'   && <UserSection   orders={orders} userWalletBalance={userWalletBalance} handleStatusUpdate={handleStatusUpdate} />}
-                {user.role === 'vendor' && <VendorSection orders={orders} handleStatusUpdate={handleStatusUpdate} products={vendorProducts} handleDeleteProduct={handleDeleteProduct} />}
+                {user.role === 'user'   && <UserSection   orders={orders} userWalletBalance={userWalletBalance} handleStatusUpdate={handleStatusUpdate} handleClearHistory={handleClearHistory} />}
+                {user.role === 'vendor' && <VendorSection orders={orders} handleStatusUpdate={handleStatusUpdate} products={vendorProducts} handleDeleteProduct={handleDeleteProduct} locations={locations} fetchLocations={fetchLocations} />}
                 {user.role === 'admin'  && (
                     <AdminSection
                         orders={orders} locations={locations}
