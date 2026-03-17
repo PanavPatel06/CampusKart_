@@ -103,6 +103,11 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate }) {
                                             Cancel
                                         </button>
                                     )}
+                                    {order.status === 'rejected' && (
+                                        <div className="text-xs font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-lg border border-red-200">
+                                            ❌ Rejected by vendor
+                                        </div>
+                                    )}
                                 </div>
                                 {order.status === 'out_for_delivery' && (
                                     <div className="w-full sm:w-auto p-3 bg-blue-50 border border-blue-200 rounded-xl text-center">
@@ -123,7 +128,6 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate }) {
 
 // ─── VENDOR SECTION ───────────────────────────────────────────────────────
 function VendorSection({ orders, handleStatusUpdate }) {
-    const [otpInputs, setOtpInputs] = useState({});
 
     return (
         <div className="space-y-6">
@@ -197,7 +201,7 @@ function VendorSection({ orders, handleStatusUpdate }) {
                                                 className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-xl transition-colors">
                                                 ✓ Accept
                                             </button>
-                                            <button onClick={() => handleStatusUpdate(order._id, 'cancelled')}
+                                            <button onClick={() => handleStatusUpdate(order._id, 'rejected')}
                                                 className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors">
                                                 ✕ Reject
                                             </button>
@@ -206,27 +210,11 @@ function VendorSection({ orders, handleStatusUpdate }) {
                                     {order.status === 'accepted' && (
                                         <p className="text-xs text-gray-500 italic py-2">Waiting for delivery agent…</p>
                                     )}
-                                    {order.status === 'agent_requested' && (
-                                        <div className="w-full">
-                                            <p className="text-xs font-bold text-blue-600 mb-2">🛵 Agent has requested this delivery!</p>
-                                            <button onClick={() => handleStatusUpdate(order._id, 'out_for_delivery')}
-                                                className="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors">
-                                                Approve Agent →
-                                            </button>
-                                        </div>
+                                    {order.status === 'rejected' && (
+                                        <p className="text-xs text-red-500 font-semibold py-2">❌ Order rejected</p>
                                     )}
                                     {order.status === 'out_for_delivery' && (
-                                        <div className="w-full flex gap-2">
-                                            <input type="text" placeholder="Enter OTP from customer"
-                                                value={otpInputs[order._id] || ''}
-                                                onChange={e => setOtpInputs(prev => ({ ...prev, [order._id]: e.target.value }))}
-                                                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-orange-400"
-                                            />
-                                            <button onClick={() => handleStatusUpdate(order._id, 'delivered', otpInputs[order._id])}
-                                                className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-xl transition-colors">
-                                                Confirm
-                                            </button>
-                                        </div>
+                                        <p className="text-xs text-blue-600 font-semibold py-2">🛵 Out for delivery</p>
                                     )}
                                 </div>
                             </div>
@@ -454,6 +442,8 @@ function AdminSection({
 
 // ─── AGENT SECTION ────────────────────────────────────────────────────────
 function AgentSection({ deliveries, handleStatusUpdate }) {
+    const [otpInputs, setOtpInputs] = useState({});
+
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -471,18 +461,27 @@ function AgentSection({ deliveries, handleStatusUpdate }) {
                 ) : (
                     <div className="space-y-3">
                         {deliveries.map(order => (
-                            <div key={order._id} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-mono text-gray-400">#{order._id.slice(-6).toUpperCase()}</p>
-                                    <p className="font-bold text-gray-900 text-sm">₹{order.totalAmount}</p>
-                                    <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+                            <div key={order._id} className="flex flex-col gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-mono text-gray-400">#{order._id.slice(-6).toUpperCase()}</p>
+                                        <p className="font-bold text-gray-900 text-sm">₹{order.totalAmount}</p>
+                                        <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <StatusBadge status={order.status} />
                                 </div>
-                                <StatusBadge status={order.status} />
                                 {order.status === 'out_for_delivery' && (
-                                    <button onClick={() => handleStatusUpdate(order._id, 'delivered')}
-                                        className="px-3.5 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-xl transition-colors">
-                                        Delivered ✓
-                                    </button>
+                                    <div className="flex gap-2 border-t border-gray-100 pt-3">
+                                        <input type="text" placeholder="Enter OTP from customer"
+                                            value={otpInputs[order._id] || ''}
+                                            onChange={e => setOtpInputs(prev => ({ ...prev, [order._id]: e.target.value }))}
+                                            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-orange-400"
+                                        />
+                                        <button onClick={() => handleStatusUpdate(order._id, 'delivered', otpInputs[order._id])}
+                                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-xl transition-colors">
+                                            Mark Delivered ✓
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         ))}

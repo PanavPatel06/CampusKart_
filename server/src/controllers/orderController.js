@@ -21,7 +21,7 @@ const addOrderItems = async (req, res) => {
         throw new Error('No order items');
     } else {
         try {
-            // 1. Check Wallet Balance
+            // 1. Check Wallet Balance (soft check — actual deduction happens on confirmation)
             const user = await User.findById(req.user._id);
             if (!user) {
                 res.status(404);
@@ -30,14 +30,12 @@ const addOrderItems = async (req, res) => {
 
             if (user.walletBalance < totalPrice) {
                 res.status(400);
-                // Return specific error for frontend to handle
                 throw new Error('Insufficient wallet balance');
             }
 
             // 2. Get Commission Rates
             let commissionRates = await Commission.findOne();
             if (!commissionRates) {
-                // Fallback if not set
                 commissionRates = { companyRate: 5, deliveryRate: 5 };
             }
 
@@ -48,20 +46,7 @@ const addOrderItems = async (req, res) => {
 
             console.log(`[OrderPayment] Total: ${totalPrice}, Com: ${companyEarnings}, Del: ${deliveryEarnings}, Ven: ${vendorEarnings}`);
 
-            // 4. Deduct Balance
-            user.walletBalance -= totalPrice;
-            await user.save();
-
-            // 5. Create Transaction
-            await Transaction.create({
-                user: user._id,
-                amount: totalPrice,
-                type: 'debit',
-                description: `Payment for Order`, // Order ID will be added after save if needed, or we save order first?
-                // Actually, if order save fails, we should ideally rollback. 
-                // For simplicity in this stack, we proceed. 
-                status: 'success'
-            });
+            // NOTE: Wallet is NOT deducted here. Deduction happens when agent confirms (out_for_delivery).
 
             // Generate 4-digit OTP
             const otp = Math.floor(1000 + Math.random() * 9000).toString();
@@ -76,7 +61,7 @@ const addOrderItems = async (req, res) => {
                 deliveryOtp: otp,
                 instructions: req.body.instructions || "",
                 deliveryLocation: req.body.deliveryLocation,
-                paymentStatus: 'paid',
+                paymentStatus: 'unpaid',
                 commission: {
                     company: companyEarnings,
                     delivery: deliveryEarnings,
@@ -163,24 +148,49 @@ const updateOrderStatus = async (req, res) => {
 
     if (order) {
         // Authorization Check
-        // If User/Agent:
         if (req.user.role === 'user' || req.user.role === 'agent') {
             // Case 1: Customer Cancelling Pending Order
             if (order.customer.toString() === req.user._id.toString()) {
-                if (status !== 'cancelled' && order.status === 'pending') {
+                if (status !== 'cancelled' || order.status !== 'pending') {
                     res.status(400);
                     throw new Error('Customers can only cancel pending orders');
                 }
             }
-            // Case 2: Delivery Agent Requesting Order (Handshake Step 1)
-            else if (status === 'agent_requested') {
-                // Agent requests to take the order
+            // Case 2: Delivery Agent Accepting Order → directly out_for_delivery
+            else if (status === 'out_for_delivery' && req.user.role === 'agent') {
+                if (order.status !== 'accepted') {
+                    res.status(400);
+                    throw new Error('Order must be accepted by vendor first');
+                }
+                // Deduct wallet balance now (order confirmed)
+                const customer = await User.findById(order.customer);
+                if (!customer) {
+                    res.status(404);
+                    throw new Error('Customer not found');
+                }
+                if (customer.walletBalance < order.totalAmount) {
+                    res.status(400);
+                    throw new Error('Customer has insufficient wallet balance');
+                }
+                customer.walletBalance -= order.totalAmount;
+                await customer.save();
+                console.log(`[Payment] Deducted ₹${order.totalAmount} from user ${customer._id}`);
+
+                // Create transaction record
+                await Transaction.create({
+                    user: customer._id,
+                    amount: order.totalAmount,
+                    type: 'debit',
+                    description: `Payment for Order #${order._id.toString().slice(-6).toUpperCase()}`,
+                    status: 'success'
+                });
+
                 order.deliveryAgent = req.user._id;
-                // We do NOT set it to 'out_for_delivery' yet.
+                order.paymentStatus = 'paid';
             }
-            // Case 3: Delivery Agent Completing Order
-            else if (status === 'delivered') {
-                if (order.deliveryAgent && order.deliveryAgent.toString() !== req.user._id.toString()) {
+            // Case 3: Delivery Agent Completing Order (OTP required)
+            else if (status === 'delivered' && req.user.role === 'agent') {
+                if (!order.deliveryAgent || order.deliveryAgent.toString() !== req.user._id.toString()) {
                     res.status(401);
                     throw new Error('Not authorized to complete this delivery');
                 }
@@ -191,28 +201,24 @@ const updateOrderStatus = async (req, res) => {
                     throw new Error('Invalid OTP. Delivery cannot be verified.');
                 }
             }
-            // Legacy/Direct Accept (if we still want to support skip-handshake, but user requested handshake)
-            // Let's remove direct 'out_for_delivery' for agents to enforce handshake.
-            else if (status === 'out_for_delivery') {
-                // Only Vendor can set this now (approving the agent)
-                res.status(401);
-                throw new Error('Wait for vendor approval');
-            }
             else {
                 res.status(401);
                 throw new Error('Not authorized to update this order');
             }
         }
-        // If Vendor: Can update to any status if they own the order
+        // If Vendor: Can accept or reject orders they own
         else if (req.user.role === 'vendor') {
             const vendor = await Vendor.findOne({ user: req.user._id });
             if (!vendor || order.vendor.toString() !== vendor._id.toString()) {
                 res.status(401);
                 throw new Error('Not authorized to update this order');
             }
-            // Vendor approving agent
-            if (status === 'out_for_delivery' && order.status === 'agent_requested') {
-                // Keep the deliveryAgent that was set
+            // Vendor can accept or reject pending orders
+            if (order.status === 'pending' && (status === 'accepted' || status === 'rejected')) {
+                // No refund needed on reject — wallet is not deducted until order is confirmed
+            } else {
+                res.status(400);
+                throw new Error('Vendor can only accept or reject pending orders');
             }
         }
         // If Admin: Can do anything
@@ -229,24 +235,13 @@ const updateOrderStatus = async (req, res) => {
             const io = getIO();
             const populatedOrder = await Order.findById(updatedOrder._id)
                 .populate('vendor', 'storeName location')
-                .populate('deliveryAgent', 'name'); // Populate agent name
+                .populate('deliveryAgent', 'name');
 
-            // 1. Notify Vendor Room (Agent requested pickup)
-            if (status === 'agent_requested') {
-                // Notify Vendor uniquely? For now, we broadcast to the room or just let Frontend poll/refresh.
-                // Ideally, emit to 'vendor_room'. We haven't implemented specific vendor rooms yet.
-                // But Dashboard.js polls. We can emit a generic 'order_updated' event.
-                io.emit('order_updated', populatedOrder);
-            }
+            // Notify all clients on any status change
+            io.emit('order_updated', populatedOrder);
 
-            // 2. Notify Agent (Vendor approved)
-            if (status === 'out_for_delivery') {
-                io.emit('order_updated', populatedOrder);
-            }
-
-            // 3. New Delivery Request (Vendor Accepted)
+            // Vendor accepted → notify delivery agents in the location room
             if (status === 'accepted') {
-                // ... (Existing logic for location-based emit)
                 const locationRaw = populatedOrder.vendor.location || "";
                 const normalizedLocation = locationRaw.trim().toLowerCase().replace(/\s+/g, '_');
                 const targetRoom = `delivery_${normalizedLocation}`;
@@ -279,31 +274,26 @@ const getAvailableDeliveryOrders = async (req, res) => {
             return res.status(400).json({ message: 'Location query parameter is required' });
         }
 
-        // 1. Find Vendors in the requested location
         const Vendor = require('../models/Vendor');
-        // Normalized location search (case-insensitive) - improved robustness
-        // But for now, let's trust strict matching first as per our earlier fix
-        const vendors = await Vendor.find({ location: location });
+
+        let vendorQuery = {};
+        if (location !== 'All') {
+            vendorQuery = { location: location };
+        }
+
+        const vendors = await Vendor.find(vendorQuery);
 
         if (vendors.length === 0) {
-            console.log(`[getAvailableDeliveryOrders] No vendors found in location: ${location}`);
+            console.log(`[getAvailableDeliveryOrders] No vendors found for location: ${location}`);
             return res.json([]);
         }
 
         const vendorIds = vendors.map(v => v._id);
 
-        // 2. Find Orders from those vendors with status 'accepted' or 'out_for_delivery' (and no agent assigned yet)
-        // Actually, 'out_for_delivery' implies agent assigned.
-        // We want orders that represent a REQUEST.
-        // If status is 'accepted' -> It means Vendor said YES, waiting for driver.
-        // If status is 'out_for_delivery' AND deliveryAgent is NULL (edge case) or not this user?
-        // Standard flow: Vendor 'Accepts' -> Emits Request. Agent 'Accepts' -> Status 'out_for_delivery'.
-        // So we want orders with status 'accepted'.
-
         const orders = await Order.find({
             vendor: { $in: vendorIds },
-            status: 'accepted', // Only show orders waiting for pickup
-            deliveryAgent: { $exists: false } // ensure no one else took it (optional, depending on schema default)
+            status: 'accepted',
+            deliveryAgent: { $exists: false }
         }).populate('vendor', 'storeName location')
             .sort({ createdAt: -1 });
 

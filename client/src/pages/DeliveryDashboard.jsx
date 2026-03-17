@@ -1,41 +1,46 @@
-// client/src/pages/DeliveryDashboard.jsx  ← replace existing file entirely
-// Logic is IDENTICAL — same socket.io, same handlers, same API calls.
-// Only the JSX/styling is redesigned. Debug section removed (was marked as debug).
+// client/src/pages/DeliveryDashboard.jsx
+// Removed online/offline toggle — agent is always active when viewing this page.
+// Added "All" option to delivery zone dropdown.
 
 import { useState, useEffect, useContext } from 'react';
 import { io } from 'socket.io-client';
 import AuthContext from '../context/AuthContext';
 import { updateOrderStatus, getAvailableOrders, getLocations } from '../services/api';
 
-// ← identical to original: socket initialized outside component
+// socket initialized outside component
 const socket = io('http://localhost:5001');
 
 function cn(...c) { return c.filter(Boolean).join(' '); }
 
 const DeliveryDashboard = () => {
-    // ← identical state to original
     const { user } = useContext(AuthContext);
-    const [isOnline,         setIsOnline]         = useState(false);
     const [availableOrders,  setAvailableOrders]  = useState([]);
-    const [selectedLocation, setSelectedLocation] = useState('');
+    const [selectedLocation, setSelectedLocation] = useState('All');
     const [locations,        setLocations]        = useState([]);
     const [isConnected,      setIsConnected]      = useState(socket.connected);
 
     useEffect(() => {
         getLocations().then(({ data }) => {
             setLocations(data);
-            if (data.length > 0 && !selectedLocation) setSelectedLocation(data[0].name);
         }).catch(console.error);
     }, []);
 
     useEffect(() => {
-        // ← identical socket logic to original
+        // socket connection handlers
         socket.on('connect',       () => { console.log('Socket Connected:', socket.id); setIsConnected(true); });
         socket.on('disconnect',    () => { console.log('Socket Disconnected'); setIsConnected(false); });
         socket.on('connect_error', (err) => { console.error('Socket Connection Error:', err); setIsConnected(false); });
 
-        if (isOnline && user && selectedLocation) {
-            socket.emit('join_delivery', { userId: user._id, location: selectedLocation });
+        if (user && selectedLocation) {
+            if (selectedLocation === 'All') {
+                // Join all location rooms
+                locations.forEach(loc => {
+                    socket.emit('join_delivery', { userId: user._id, location: loc.name });
+                });
+            } else {
+                socket.emit('join_delivery', { userId: user._id, location: selectedLocation });
+            }
+
             setAvailableOrders([]);
             const fetchExisting = async () => {
                 try {
@@ -50,8 +55,10 @@ const DeliveryDashboard = () => {
         }
 
         socket.on('new_delivery_request', (order) => {
-            const orderLocation = order.vendor?.location || '';
-            if (orderLocation.trim().toLowerCase() !== selectedLocation.trim().toLowerCase()) return;
+            if (selectedLocation !== 'All') {
+                const orderLocation = order.vendor?.location || '';
+                if (orderLocation.trim().toLowerCase() !== selectedLocation.trim().toLowerCase()) return;
+            }
             const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3');
             audio.play().catch(e => console.log('Audio play failed', e));
             setAvailableOrders(prev => {
@@ -61,21 +68,29 @@ const DeliveryDashboard = () => {
         });
 
         return () => {
-            if (user) socket.emit('leave_delivery', { userId: user._id, location: selectedLocation });
+            if (user) {
+                if (selectedLocation === 'All') {
+                    locations.forEach(loc => {
+                        socket.emit('leave_delivery', { userId: user._id, location: loc.name });
+                    });
+                } else {
+                    socket.emit('leave_delivery', { userId: user._id, location: selectedLocation });
+                }
+            }
             socket.off('new_delivery_request');
             socket.off('connect');
             socket.off('connect_error');
         };
-    }, [isOnline, user, selectedLocation]);
+    }, [user, selectedLocation, locations]);
 
     const handleAcceptOrder = async (orderId) => {
         try {
-            await updateOrderStatus(orderId, 'agent_requested');
-            alert('Request sent to Vendor! Please wait for approval in your main Dashboard.');
+            await updateOrderStatus(orderId, 'out_for_delivery');
+            alert('Order accepted! The user has been notified and will receive an OTP.');
             setAvailableOrders(prev => prev.filter(o => o._id !== orderId));
         } catch (error) {
             console.error('Failed to accept order:', error);
-            alert('Failed to accept order.');
+            alert('Failed to accept order: ' + (error.response?.data?.message || error.message));
         }
     };
 
@@ -101,78 +116,26 @@ const DeliveryDashboard = () => {
 
             <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-                {/* Online toggle card */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-8 flex flex-col items-center gap-5">
-                    {/* Big toggle button */}
-                    <button
-                        onClick={() => setIsOnline(!isOnline)}
-                        aria-label={isOnline ? 'Go offline' : 'Go online'}
-                        className={cn(
-                            'relative w-24 h-24 rounded-full transition-all duration-500 focus:outline-none focus-visible:ring-4',
-                            isOnline
-                                ? 'bg-gradient-to-br from-green-400 to-green-600 shadow-[0_0_0_12px_rgba(74,222,128,0.15)] focus-visible:ring-green-400 hover:shadow-[0_0_0_16px_rgba(74,222,128,0.2)] active:scale-95'
-                                : 'bg-gradient-to-br from-gray-500 to-gray-600 focus-visible:ring-gray-400 hover:from-gray-400 hover:to-gray-500 active:scale-95'
-                        )}
-                    >
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                    d={isOnline
-                                        ? 'M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728M8.464 15.536a5 5 0 010-7.072m7.072 0a5 5 0 010 7.072M12 12h.01'
-                                        : 'M18.364 5.636a9 9 0 010 12.728M5.636 18.364a9 9 0 010-12.728m12.728-12.728L5.636 18.364M12 12h.01'}
-                                />
-                            </svg>
-                        </div>
-                        {isOnline && <span className="absolute inset-0 rounded-full bg-green-400/20 animate-ping" />}
-                    </button>
-
-                    <div className="text-center">
-                        <p className={cn('text-lg font-black', isOnline ? 'text-green-400' : 'text-gray-400')}>
-                            {isOnline ? 'You are ONLINE' : 'You are OFFLINE'}
-                        </p>
-                        <p className="text-gray-500 text-xs mt-1 max-w-[200px]">
-                            {isOnline
-                                ? `Receiving requests for ${selectedLocation}`
-                                : 'Tap the button to start receiving delivery requests'}
-                        </p>
-                    </div>
-
-                    {!isConnected && (
-                        <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold bg-amber-400/10 px-4 py-2 rounded-xl border border-amber-400/20">
-                            ⚠️ Socket disconnected — check your network
-                        </div>
-                    )}
-                </div>
-
                 {/* Location selector */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
                     <label className="block text-sm font-semibold text-gray-300 mb-3">📍 Your Delivery Zone</label>
-                    {!isOnline ? (
-                        <div className="relative">
-                            <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)}
-                                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400/60 transition-all appearance-none cursor-pointer">
-                                {locations.map(loc => (
-                                    <option key={loc._id} value={loc.name} className="text-gray-900">{loc.name}</option>
-                                ))}
-                            </select>
-                            <svg className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                        </div>
-                    ) : (
-                        <div className="flex items-center gap-2 px-4 py-3 bg-green-500/10 border border-green-500/30 rounded-xl">
-                            <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
-                            <span className="text-green-300 text-sm font-semibold">{selectedLocation}</span>
-                            <span className="text-green-500/60 text-xs ml-auto">Go offline to change</span>
-                        </div>
-                    )}
+                    <div className="relative">
+                        <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)}
+                            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400/60 transition-all appearance-none cursor-pointer">
+                            <option value="All" className="text-gray-900">All</option>
+                            {locations.map(loc => (
+                                <option key={loc._id} value={loc.name} className="text-gray-900">{loc.name}</option>
+                            ))}
+                        </select>
+                        <svg className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </div>
                 </div>
 
-                {/* Offline warning */}
-                {!isOnline && (
-                    <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-sm">
-                        <span className="shrink-0 mt-0.5">💡</span>
-                        <p>Select your zone above, then go online to start receiving delivery requests.</p>
+                {!isConnected && (
+                    <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold bg-amber-400/10 px-4 py-2 rounded-xl border border-amber-400/20">
+                        ⚠️ Socket disconnected — check your network
                     </div>
                 )}
 
@@ -187,15 +150,10 @@ const DeliveryDashboard = () => {
                         )}
                     </div>
 
-                    {!isOnline ? (
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-10 text-center">
-                            <div className="text-4xl mb-3 opacity-40">🛵</div>
-                            <p className="text-gray-400 text-sm font-semibold">Go online to see orders</p>
-                        </div>
-                    ) : availableOrders.length === 0 ? (
+                    {availableOrders.length === 0 ? (
                         <div className="bg-white/5 border border-white/10 rounded-2xl p-10 text-center">
                             <div className="text-4xl mb-3">⏳</div>
-                            <p className="text-gray-300 font-semibold text-sm">No orders in {selectedLocation}</p>
+                            <p className="text-gray-300 font-semibold text-sm">No orders in {selectedLocation === 'All' ? 'any zone' : selectedLocation}</p>
                             <p className="text-gray-500 text-xs mt-1">New orders will appear here in real time</p>
                         </div>
                     ) : (
@@ -234,9 +192,8 @@ const DeliveryDashboard = () => {
                 </div>
 
                 {/* Stats strip */}
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3">
                     {[
-                        { label: 'Status',   value: isOnline ? 'Online' : 'Offline', color: isOnline ? 'text-green-400' : 'text-gray-400' },
                         { label: 'Zone',     value: selectedLocation || 'None',       color: 'text-white' },
                         { label: 'Pending',  value: availableOrders.length,           color: availableOrders.length > 0 ? 'text-orange-400' : 'text-gray-400' },
                     ].map(s => (

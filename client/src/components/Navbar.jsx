@@ -14,7 +14,7 @@ const ROLE_PILL = {
 };
 
 // ─── Profile Dropdown ──────────────────────────────────────────────────────
-function ProfileDropdown({ user, onLogout }) {
+function ProfileDropdown({ user, onLogout, showCart, showDelivery }) {
     const [open, setOpen] = useState(false);
     const initials = user.name?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '??';
 
@@ -51,9 +51,9 @@ function ProfileDropdown({ user, onLogout }) {
                         <div className="py-1">
                             {[
                                 { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-                                { to: '/products',  icon: '🛍️', label: 'Browse Products' },
-                                { to: '/cart',      icon: '🛒', label: 'Cart' },
-                                { to: '/delivery',  icon: '🚚', label: 'Delivery Hub' },
+                                ...(user.role !== 'agent' ? [{ to: '/products',  icon: '🛍️', label: 'Browse Products' }] : []),
+                                ...(showCart ? [{ to: '/cart', icon: '🛒', label: 'Cart' }] : []),
+                                ...(showDelivery ? [{ to: '/delivery', icon: '🚚', label: 'Delivery Hub' }] : []),
                             ].map(item => (
                                 <Link key={item.to} to={item.to} onClick={() => setOpen(false)}
                                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors font-medium">
@@ -75,7 +75,7 @@ function ProfileDropdown({ user, onLogout }) {
 }
 
 // ─── Mobile Drawer ─────────────────────────────────────────────────────────
-function MobileMenu({ open, onClose, user, cartCount, onLogout }) {
+function MobileMenu({ open, onClose, user, cartCount, onLogout, showCart, showDelivery }) {
     if (!open) return null;
     return (
         <>
@@ -107,9 +107,9 @@ function MobileMenu({ open, onClose, user, cartCount, onLogout }) {
                         <>
                             {[
                                 { to: '/dashboard', icon: '📊', label: 'Dashboard' },
-                                { to: '/products',  icon: '🛍️', label: 'Browse Products' },
-                                { to: '/cart',      icon: '🛒', label: 'Cart', badge: cartCount },
-                                { to: '/delivery',  icon: '🚚', label: 'Delivery Hub' },
+                                ...(user.role !== 'agent' ? [{ to: '/products',  icon: '🛍️', label: 'Browse Products' }] : []),
+                                ...(showCart ? [{ to: '/cart', icon: '🛒', label: 'Cart', badge: cartCount }] : []),
+                                ...(showDelivery ? [{ to: '/delivery', icon: '🚚', label: 'Delivery Hub' }] : []),
                             ].map(item => (
                                 <Link key={item.to} to={item.to} onClick={onClose}
                                     className="flex items-center gap-4 px-5 py-3.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors">
@@ -156,6 +156,8 @@ const Navbar = () => {
 
     const cartCount   = cartItems.length;
     const isActive    = (path) => location.pathname === path;
+    const showCart    = user?.role === 'user';
+    const showDelivery = user?.role === 'agent';
 
     return (
         <>
@@ -180,8 +182,8 @@ const Navbar = () => {
                             <nav className="hidden md:flex items-center gap-1 ml-2" aria-label="Main navigation">
                                 {[
                                     { to: '/dashboard', label: 'Dashboard' },
-                                    { to: '/products',  label: 'Browse' },
-                                    { to: '/delivery',  label: 'Delivery' },
+                                    ...(user.role !== 'agent' ? [{ to: '/products',  label: 'Browse' }] : []),
+                                    ...(showDelivery ? [{ to: '/delivery', label: 'Delivery' }] : []),
                                 ].map(item => (
                                     <Link key={item.to} to={item.to}
                                         className={`px-3.5 py-2 rounded-xl text-sm font-semibold transition-all duration-150 ${isActive(item.to) ? 'text-orange-600 bg-orange-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}>
@@ -197,21 +199,23 @@ const Navbar = () => {
                         <div className="flex items-center gap-2">
                             {user ? (
                                 <>
-                                    {/* Cart button */}
-                                    <Link to="/cart" aria-label={`Cart, ${cartCount} items`}
-                                        className="relative p-2.5 rounded-xl hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
-                                        <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                        {cartCount > 0 && (
-                                            <span className="absolute -top-0.5 -right-0.5 min-w-[1.1rem] h-[1.1rem] px-1 bg-orange-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
-                                                {cartCount > 99 ? '99+' : cartCount}
-                                            </span>
-                                        )}
-                                    </Link>
+                                    {/* Cart button — only for user role */}
+                                    {showCart && (
+                                        <Link to="/cart" aria-label={`Cart, ${cartCount} items`}
+                                            className="relative p-2.5 rounded-xl hover:bg-gray-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+                                            <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            {cartCount > 0 && (
+                                                <span className="absolute -top-0.5 -right-0.5 min-w-[1.1rem] h-[1.1rem] px-1 bg-orange-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                                                    {cartCount > 99 ? '99+' : cartCount}
+                                                </span>
+                                            )}
+                                        </Link>
+                                    )}
 
                                     {/* Profile dropdown */}
-                                    <ProfileDropdown user={user} onLogout={handleLogout} />
+                                    <ProfileDropdown user={user} onLogout={handleLogout} showCart={showCart} showDelivery={showDelivery} />
                                 </>
                             ) : (
                                 <div className="hidden sm:flex items-center gap-2">
@@ -247,6 +251,8 @@ const Navbar = () => {
                 user={user}
                 cartCount={cartCount}
                 onLogout={handleLogout}
+                showCart={showCart}
+                showDelivery={showDelivery}
             />
         </>
     );
