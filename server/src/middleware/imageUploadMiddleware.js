@@ -1,0 +1,16 @@
+const multer = require('multer');
+const { imageStorage } = require('../config/cloudinary');
+
+const uploadImage = multer({
+    storage: imageStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true);
+        } else {
+            cb(new Error('Only image files are allowed!'), false);
+        }
+    },
+});
+
+module.exports = uploadImage;

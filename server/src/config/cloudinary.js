@@ -19,4 +19,13 @@ const storage = new CloudinaryStorage({
     },
 });
 
-module.exports = { cloudinary, storage };
+const imageStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'campuskart_products',
+        allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+        resource_type: 'image',
+    },
+});
+
+module.exports = { cloudinary, storage, imageStorage };

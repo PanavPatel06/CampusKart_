@@ -5,6 +5,7 @@ import { useState, useEffect, useContext } from 'react';
 import { getAllProducts } from '../services/api';
 import { Link } from 'react-router-dom';
 import CartContext from '../context/CartContext';
+import AuthContext from '../context/AuthContext';
 
 // ─── Skeleton card ─────────────────────────────────────────────────────────
 function SkeletonCard() {
@@ -25,18 +26,17 @@ function SkeletonCard() {
 }
 
 // ─── Product card ──────────────────────────────────────────────────────────
-function ProductCard({ product, onAddToCart, justAdded }) {
+function ProductCard({ product, onAddToCart, justAdded, userRole }) {
     return (
         <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
             {/* Image area */}
             <div className="relative h-40 bg-gradient-to-br from-orange-50 to-amber-50 overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center text-5xl opacity-25 group-hover:scale-110 transition-transform duration-500 select-none">
-                    🛍️
-                </div>
-                {product.vendor?.storeName && (
-                    <span className="absolute top-3 left-3 px-2.5 py-1 bg-gray-900 text-white text-[10px] font-semibold rounded-full">
-                        {product.vendor.storeName}
-                    </span>
+                {product.image ? (
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                    <div className="absolute inset-0 flex items-center justify-center text-5xl opacity-25 group-hover:scale-110 transition-transform duration-500 select-none">
+                        🛍️
+                    </div>
                 )}
             </div>
 
@@ -46,22 +46,21 @@ function ProductCard({ product, onAddToCart, justAdded }) {
                     <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 group-hover:text-orange-600 transition-colors">
                         {product.name}
                     </h3>
-                    {product.description && (
-                        <p className="text-xs text-gray-500 mt-1.5 line-clamp-2 leading-relaxed">{product.description}</p>
-                    )}
                 </div>
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-gray-50">
                     <span className="text-xl font-black text-gray-900">₹{product.price}</span>
-                    <button
-                        onClick={() => onAddToCart(product)}
-                        className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 ${
-                            justAdded
-                                ? 'bg-green-500 text-white shadow-sm'
-                                : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-200 hover:shadow-lg active:scale-95'
-                        }`}
-                    >
-                        {justAdded ? '✓ Added' : '+ Cart'}
-                    </button>
+                    {userRole === 'user' && (
+                        <button
+                            onClick={() => onAddToCart(product)}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 ${
+                                justAdded
+                                    ? 'bg-green-500 text-white shadow-sm'
+                                    : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-200 hover:shadow-lg active:scale-95'
+                            }`}
+                        >
+                            {justAdded ? '✓ Added' : '+ Cart'}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
@@ -75,6 +74,7 @@ const ProductList = () => {
     const [search, setSearch]     = useState('');
     const [addedIds, setAddedIds] = useState(new Set());
     const { addToCart }           = useContext(CartContext);
+    const { user }                = useContext(AuthContext);
 
     const handleAddToCart = (product) => {
         addToCart(product);
@@ -171,7 +171,8 @@ const ProductList = () => {
                         {filtered.map(product => (
                             <ProductCard key={product._id} product={product}
                                 onAddToCart={handleAddToCart}
-                                justAdded={addedIds.has(product._id)} />
+                                justAdded={addedIds.has(product._id)}
+                                userRole={user?.role} />
                         ))}
                     </div>
                 )}

@@ -17,6 +17,10 @@ const productSchema = new mongoose.Schema({
     description: {
         type: String,
     },
+    image: {
+        type: String,
+        default: '',
+    },
     isAvailable: {
         type: Boolean,
         default: true,

@@ -7,8 +7,9 @@ import {
     getMyOrders, getVendorOrders, updateOrderStatus, getAllOrders,
     getMyDeliveries, getLocations, addLocation, deleteLocation,
     addFunds, searchUsers, getSystemEarnings, getCommissionRates,
-    updateCommissionRates, getMyWallet,
+    updateCommissionRates, getMyWallet, getVendorProducts, deleteProduct,
 } from '../services/api';
+import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
 const socket = io('http://localhost:5001');
@@ -19,7 +20,9 @@ function cn(...c) { return c.filter(Boolean).join(' '); }
 function StatusBadge({ status }) {
     const map = {
         pending:          'bg-amber-100 text-amber-800',
+        processing:       'bg-amber-100 text-amber-800', // user sees this when vendor accepts
         accepted:         'bg-blue-100 text-blue-800',
+        confirmed:        'bg-indigo-100 text-indigo-800', // user sees this when agent accepts
         preparing:        'bg-blue-100 text-blue-800',
         ready:            'bg-purple-100 text-purple-800',
         agent_requested:  'bg-purple-100 text-purple-800',
@@ -99,8 +102,12 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate }) {
                                     <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
                                 </div>
                                 <div className="flex items-center gap-3 flex-wrap">
-                                    <StatusBadge status={order.status} />
-                                    {order.status === 'pending' && (
+                                    <StatusBadge status={
+                                        order.status === 'accepted' ? 'processing' :
+                                        order.status === 'out_for_delivery' ? 'confirmed' :
+                                        order.status
+                                    } />
+                                    {(order.status === 'pending' || order.status === 'accepted') && (
                                         <button onClick={() => handleStatusUpdate(order._id, 'cancelled')}
                                             className="text-xs font-semibold text-red-500 hover:text-red-700 underline transition-colors">
                                             Cancel
@@ -130,7 +137,7 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate }) {
 }
 
 // ─── VENDOR SECTION ───────────────────────────────────────────────────────
-function VendorSection({ orders, handleStatusUpdate }) {
+function VendorSection({ orders, handleStatusUpdate, products, handleDeleteProduct }) {
 
     return (
         <div className="space-y-6">
@@ -143,11 +150,37 @@ function VendorSection({ orders, handleStatusUpdate }) {
             <Card>
                 <div className="flex items-center justify-between mb-5">
                     <SectionTitle>Manage Products</SectionTitle>
+                    <Link to="/add-product" className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors shadow-sm">
+                        + Add Product
+                    </Link>
                 </div>
-                <p className="text-sm text-gray-500 mb-4">Add, edit, or remove your products from the marketplace.</p>
-                <a href="/add-product" className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-md shadow-orange-200">
-                    + Add Product
-                </a>
+                {products && products.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
+                        {products.map(product => (
+                            <div key={product._id} className="flex gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                                {product.image ? (
+                                    <img src={product.image} alt={product.name} className="w-16 h-16 rounded-lg object-cover shrink-0 bg-gray-200 border border-gray-200" />
+                                ) : (
+                                    <div className="w-16 h-16 rounded-lg bg-gray-200 border border-gray-200 flex items-center justify-center text-xl shrink-0">🛍️</div>
+                                )}
+                                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                                    <div>
+                                        <h3 className="font-bold text-gray-900 text-sm truncate">{product.name}</h3>
+                                        <p className="text-gray-500 text-xs mt-0.5 font-bold">₹{product.price}</p>
+                                    </div>
+                                    <div className="flex gap-3 mt-2">
+                                        <Link to="/add-product" state={{ product }} className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors">Edit</Link>
+                                        <button onClick={() => handleDeleteProduct(product._id)} className="text-xs font-semibold text-red-600 hover:text-red-800 transition-colors">Delete</button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-8">
+                        <p className="text-sm text-gray-500">No products listed. Add your first product!</p>
+                    </div>
+                )}
             </Card>
 
             <Card>
@@ -501,6 +534,7 @@ const Dashboard = () => {
     const { user }   = useContext(AuthContext);
     const [orders,     setOrders]     = useState([]);
     const [deliveries, setDeliveries] = useState([]);
+    const [vendorProducts, setVendorProducts] = useState([]);
     const [locations,  setLocations]  = useState([]);
     const [error,      setError]      = useState(null);
 
@@ -530,6 +564,7 @@ const Dashboard = () => {
                 let orderData = []; let deliveryData = [];
                 if (user.role === 'vendor') {
                     const r = await getVendorOrders(); orderData = r.data;
+                    try { const rp = await getVendorProducts(); setVendorProducts(rp.data); } catch {}
                 } else if (user.role === 'user') {
                     const r = await getMyOrders(); orderData = r.data;
                     try { const { data } = await getMyWallet(); console.log('[Dashboard] Wallet data:', data); setUserWalletBalance(data.balance); } catch (walletErr) { console.error('[Dashboard] Wallet fetch error:', walletErr); }
@@ -551,6 +586,15 @@ const Dashboard = () => {
         e.preventDefault();
         try { const { data } = await searchUsers(walletSearch); setWalletUsers(data); }
         catch (e) { alert(e.message); }
+    };
+
+    const handleDeleteProduct = async (id) => {
+        if (window.confirm('Are you sure you want to delete this product?')) {
+            try {
+                await deleteProduct(id);
+                setVendorProducts(vendorProducts.filter(p => p._id !== id));
+            } catch (e) { alert('Failed to delete product'); }
+        }
     };
 
     const handleAddFunds = async () => {
@@ -636,7 +680,7 @@ const Dashboard = () => {
                 )}
 
                 {user.role === 'user'   && <UserSection   orders={orders} userWalletBalance={userWalletBalance} handleStatusUpdate={handleStatusUpdate} />}
-                {user.role === 'vendor' && <VendorSection orders={orders} handleStatusUpdate={handleStatusUpdate} />}
+                {user.role === 'vendor' && <VendorSection orders={orders} handleStatusUpdate={handleStatusUpdate} products={vendorProducts} handleDeleteProduct={handleDeleteProduct} />}
                 {user.role === 'admin'  && (
                     <AdminSection
                         orders={orders} locations={locations}

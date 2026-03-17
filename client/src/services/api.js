@@ -39,8 +39,15 @@ export const getMyOrders = () => API.get('/orders/myorders');
 export const getVendors = () => API.get('/vendors');
 
 export const addProduct = (productData) => API.post('/products', productData);
+export const updateProduct = (id, productData) => API.put(`/products/${id}`, productData);
+export const deleteProduct = (id) => API.delete(`/products/${id}`);
+export const getVendorProducts = () => API.get('/products/vendor/myproducts');
 
 export const getAllProducts = () => API.get('/products');
+
+export const uploadImage = (formData) => API.post('/upload/image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+});
 
 export const getAvailableOrders = (location) => API.get(`/orders/delivery/available?location=${location}`);
 
