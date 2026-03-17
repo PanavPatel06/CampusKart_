@@ -9,6 +9,9 @@ import {
     addFunds, searchUsers, getSystemEarnings, getCommissionRates,
     updateCommissionRates, getMyWallet,
 } from '../services/api';
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:5001');
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 function cn(...c) { return c.filter(Boolean).join(' '); }
@@ -577,6 +580,24 @@ const Dashboard = () => {
     };
 
     useEffect(() => { fetchOrders(); }, [user]);
+
+    // Listen for live updates via socket
+    useEffect(() => {
+        if (!user) return;
+        
+        const handleRefresh = () => {
+            console.log('[Socket] Refreshing dashboard orders...');
+            fetchOrders();
+        };
+
+        socket.on('new_vendor_order', handleRefresh);
+        socket.on('order_updated', handleRefresh);
+
+        return () => {
+            socket.off('new_vendor_order', handleRefresh);
+            socket.off('order_updated', handleRefresh);
+        };
+    }, [user]);
 
     if (!user) {
         return (

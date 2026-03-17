@@ -78,6 +78,14 @@ const addOrderItems = async (req, res) => {
             // await Transaction.create... (we did it before, maybe we update it or just link in description in future) 
             // Better: update the transaction we just made if we had its ID, but let's keep it simple.
 
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                io.emit('new_vendor_order', createdOrder);
+            } catch (err) {
+                console.error('[Socket] Failed to emit new_vendor_order:', err);
+            }
+
             res.status(201).json(createdOrder);
         } catch (error) {
             console.error('[addOrderItems] Error saving order:', error);
