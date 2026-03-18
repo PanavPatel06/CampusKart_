@@ -52,8 +52,42 @@ const rejectUser = async (req, res) => {
     }
 };
 
+// @desc    Reset the system (Admin)
+// @route   POST /api/admin/reset
+// @access  Private/Admin
+const resetSystem = async (req, res) => {
+    try {
+        const Order = require('../models/Order');
+        const Transaction = require('../models/Transaction');
+        const Product = require('../models/Product');
+        const Vendor = require('../models/Vendor');
+
+        // Delete all transactional data
+        await Order.deleteMany({});
+        await Transaction.deleteMany({});
+        await Product.deleteMany({});
+        await Vendor.deleteMany({});
+
+        // Reset all user wallets to 0 (except admin?)
+        // Actually the user said "everything restart", so let's reset all.
+        await User.updateMany({}, { $set: { walletBalance: 0, isApproved: false } });
+        
+        // Re-approve the current admin
+        const currentAdmin = await User.findById(req.user._id);
+        if (currentAdmin) {
+            currentAdmin.isApproved = true;
+            await currentAdmin.save();
+        }
+
+        res.json({ message: 'System reset successfully. All data cleared.' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getPendingUsers,
     approveUser,
     rejectUser,
+    resetSystem,
 };

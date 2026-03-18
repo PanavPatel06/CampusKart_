@@ -1,0 +1,9 @@
+[dotenv@17.2.3] injecting env (7) from .env -- tip: ???? add observability to secrets: https://dotenvx.com/ops
+MongoDB Connected
+
+--- Testing System Reset ---
+Dummy data created.
+Reset Response: System reset successfully. All data cleared.
+Counts after reset -> Orders: 0 Products: 0 Transactions: 0
+Admin isApproved: true
+SUCCESS: System reset successfully cleared transactions but kept admin.

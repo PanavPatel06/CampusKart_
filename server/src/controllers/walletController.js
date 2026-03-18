@@ -58,9 +58,11 @@ const getWallet = async (req, res) => {
 // @route   GET /api/wallet/earnings
 // @access  Private (Admin)
 const getSystemEarnings = async (req, res) => {
-    // Aggregate earnings from all completed Orders
-    // We can also filter by date if needed, but for now global
+    // Aggregate earnings from all DELIVERED Orders
     const result = await Order.aggregate([
+        {
+            $match: { status: 'delivered' }
+        },
         {
             $group: {
                 _id: null,
@@ -78,6 +80,47 @@ const getSystemEarnings = async (req, res) => {
         totalVendorEarnings: 0,
         totalSales: 0
     });
+};
+
+// @desc    Get admin analytics (Admin)
+// @route   GET /api/wallet/analytics
+// @access  Private (Admin)
+const getAdminAnalytics = async (req, res) => {
+    const { type } = req.query; // weekly, monthly, yearly
+    
+    let days = 7;
+    if (type === 'monthly') days = 30;
+    if (type === 'yearly') days = 365;
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    try {
+        const stats = await Order.aggregate([
+            {
+                $match: {
+                    status: 'delivered',
+                    createdAt: { $gte: startDate }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+                    },
+                    revenue: { $sum: "$totalAmount" },
+                    commission: { $sum: "$commission.company" },
+                    deliveryProfit: { $sum: "$commission.delivery" },
+                    orderCount: { $sum: 1 }
+                }
+            },
+            { $sort: { "_id": 1 } }
+        ]);
+
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
 };
 
 // @desc    Get commission rates
@@ -131,6 +174,7 @@ module.exports = {
     addFunds,
     getWallet,
     getSystemEarnings,
+    getAdminAnalytics,
     getCommissionRates,
     updateCommissionRates,
     getUsersForWallet

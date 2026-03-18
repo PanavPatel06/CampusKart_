@@ -1,0 +1,29 @@
+[dotenv@17.2.3] injecting env (7) from .env -- tip: ???? prevent building .env in docker: https://dotenvx.com/prebuild
+MongoDB Connected
+
+--- Testing Revenue Timing ---
+Earnings Before: {
+  _id: null,
+  totalCompanyEarnings: 90,
+  totalDeliveryEarnings: 45,
+  totalVendorEarnings: 765,
+  totalSales: 1300
+}
+Order created (Pending). ID: new ObjectId('69ba1e60726f75bfe0588081')
+Earnings After Pending: {
+  _id: null,
+  totalCompanyEarnings: 90,
+  totalDeliveryEarnings: 45,
+  totalVendorEarnings: 765,
+  totalSales: 1300
+}
+SUCCESS: Revenue not counted for pending order.
+Order status updated to Delivered.
+Earnings After Delivered: {
+  _id: null,
+  totalCompanyEarnings: 100,
+  totalDeliveryEarnings: 50,
+  totalVendorEarnings: 850,
+  totalSales: 1400
+}
+SUCCESS: Revenue increased exactly by 10 after delivery.

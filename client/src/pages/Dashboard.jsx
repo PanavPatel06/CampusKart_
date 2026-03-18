@@ -8,7 +8,13 @@ import {
     getMyDeliveries, getLocations, addLocation, deleteLocation,
     updateCommissionRates, getMyWallet, getVendorProducts, deleteProduct,
     clearMyOrders, getPendingUsers, approveUser, rejectUser,
+    getAdminAnalytics, resetSystem, searchUsers,
+    addFunds, getSystemEarnings, getCommissionRates,
 } from '../services/api';
+import { 
+    LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    BarChart, Bar, Cell
+} from 'recharts';
 import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
@@ -318,10 +324,13 @@ function AdminSection({
     walletUsers, selectedUser, setSelectedUser, fundAmount, setFundAmount,
     systemEarnings, commissionRates, setCommissionRates,
     handleUserSearch, handleAddFunds, handleUpdateCommission,
-    fetchLocations,
+    fetchLocations, fetchAdminWalletData, // Added fetchAdminWalletData to refresh after reset
 }) {
     const [activeTab, setActiveTab] = useState('orders');
     const [pendingUsers, setPendingUsers] = useState([]);
+    const [analyticsData, setAnalyticsData] = useState([]);
+    const [analyticsType, setAnalyticsType] = useState('weekly');
+    const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
     const fetchPendingUsers = async () => {
         try {
@@ -332,9 +341,27 @@ function AdminSection({
         }
     };
 
+    const fetchAnalytics = async (type) => {
+        setLoadingAnalytics(true);
+        try {
+            const { data } = await getAdminAnalytics(type);
+            setAnalyticsData(data);
+        } catch (e) {
+            console.error('Failed to fetch analytics', e);
+        } finally {
+            setLoadingAnalytics(false);
+        }
+    };
+
     useEffect(() => {
         fetchPendingUsers();
     }, []);
+
+    useEffect(() => {
+        if (activeTab === 'earnings') {
+            fetchAnalytics(analyticsType);
+        }
+    }, [activeTab, analyticsType]);
 
     const handleApprove = async (id) => {
         try {
@@ -358,12 +385,28 @@ function AdminSection({
         }
     };
 
+    const handleReset = async () => {
+        if (window.confirm("CRITICAL WARNING: This will permanently DELETE all orders, transactions, products, and vendors. All user wallets will be reset to 0. This cannot be undone. Are you absolutely sure?")) {
+            const confirmText = prompt("Type 'RESET' to confirm system-wide data deletion:");
+            if (confirmText === 'RESET') {
+                try {
+                    await resetSystem();
+                    alert('System reset successfully.');
+                    window.location.reload(); // Refresh to clear state
+                } catch (e) {
+                    alert('Reset failed: ' + e.message);
+                }
+            }
+        }
+    };
+
     const tabs = [
         { id: 'orders',    label: 'Orders',      icon: '📦' },
         { id: 'wallet',    label: 'Wallet',      icon: '💰' },
         { id: 'locations', label: 'Locations',   icon: '📍' },
-        { id: 'earnings',  label: 'Earnings',    icon: '📈' },
+        { id: 'earnings',  label: 'Analytics',   icon: '📈' },
         { id: 'approvals', label: 'Approvals',   icon: '🛡️' },
+        { id: 'settings',  label: 'Settings',    icon: '⚙️' },
     ];
     const [newLocation, setNewLocation] = useState('');
 
@@ -372,8 +415,8 @@ function AdminSection({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <StatCard label="Total Orders"  value={orders.length} icon="📦" accent="orange" />
                 <StatCard label="Delivered"      value={orders.filter(o => o.status === 'delivered').length} icon="✅" accent="green" />
-                <StatCard label="Revenue"        value={systemEarnings ? `₹${systemEarnings.totalSales?.toFixed(0)}` : '—'} icon="💹" accent="blue" />
-                <StatCard label="Locations"      value={locations.length} icon="📍" accent="purple" />
+                <StatCard label="Net Revenue"        value={systemEarnings ? `₹${systemEarnings.totalCompanyEarnings?.toFixed(0)}` : '—'} icon="💹" accent="blue" />
+                <StatCard label="Total Sales"      value={systemEarnings ? `₹${systemEarnings.totalSales?.toFixed(0)}` : '—'} icon="💰" accent="purple" />
             </div>
 
             {/* Tab bar */}
@@ -400,7 +443,7 @@ function AdminSection({
                         <table className="min-w-full text-sm">
                             <thead>
                                 <tr className="border-b border-gray-100 bg-gray-50">
-                                    {['Order ID','Customer','Vendor','Location','Agent','Status','Amount'].map(h => (
+                                    {['Order ID','Customer','Items','Location','Status','Amount'].map(h => (
                                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                                     ))}
                                 </tr>
@@ -409,10 +452,20 @@ function AdminSection({
                                 {orders.map(order => (
                                     <tr key={order._id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
                                         <td className="px-4 py-3.5 font-mono text-xs text-gray-500">{order._id.slice(-6).toUpperCase()}</td>
-                                        <td className="px-4 py-3.5 text-gray-800 font-medium">{order.customer?.name || 'User'}</td>
-                                        <td className="px-4 py-3.5 text-gray-600">{order.vendor?.storeName || '—'}</td>
+                                        <td className="px-4 py-3.5">
+                                            <p className="text-gray-800 font-medium">{order.customer?.name || 'User'}</p>
+                                            <p className="text-[10px] text-gray-400 truncate max-w-[120px]">{order.customer?.email}</p>
+                                        </td>
+                                        <td className="px-4 py-3.5 text-gray-600 max-w-xs">
+                                            <div className="flex flex-wrap gap-1">
+                                                {order.items?.map((it, i) => (
+                                                    <span key={i} className="bg-gray-100 text-[10px] font-bold px-1.5 py-0.5 rounded border border-gray-200">
+                                                        {it.qty}x {it.name}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3.5 text-gray-500 text-xs">{order.deliveryLocation || '—'}</td>
-                                        <td className="px-4 py-3.5 text-gray-500 text-xs">{order.deliveryAgent?.name || '—'}</td>
                                         <td className="px-4 py-3.5"><StatusBadge status={order.status} /></td>
                                         <td className="px-4 py-3.5 font-bold text-gray-900">₹{order.totalAmount}</td>
                                     </tr>
@@ -424,6 +477,96 @@ function AdminSection({
                         )}
                     </div>
                 </Card>
+            )}
+
+            {/* ── Tracking / Analytics Tab ── */}
+            {activeTab === 'earnings' && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Card className="md:col-span-2">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-bold text-gray-900">Revenue Growth</h3>
+                                <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
+                                    {['weekly', 'monthly', 'yearly'].map(t => (
+                                        <button key={t} onClick={() => setAnalyticsType(t)}
+                                            className={cn('px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest transition-all',
+                                                analyticsType === t ? 'bg-white text-orange-500 shadow-sm' : 'text-gray-400 hover:text-gray-600')}>
+                                            {t}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            
+                            <div className="h-[300px] w-full mt-4">
+                                {loadingAnalytics ? (
+                                    <div className="h-full flex items-center justify-center">
+                                        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                                    </div>
+                                ) : analyticsData.length > 0 ? (
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={analyticsData}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                            <XAxis dataKey="_id" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                                            <Tooltip 
+                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
+                                                cursor={{ fill: 'transparent' }}
+                                            />
+                                            <Bar dataKey="revenue" radius={[6, 6, 0, 0]}>
+                                                {analyticsData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#f97316' : '#fdba74'} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                ) : (
+                                    <div className="h-full flex items-center justify-center text-gray-400 text-sm font-medium">
+                                        No data available for this period
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
+                        
+                        <div className="space-y-4">
+                            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-none shadow-orange-100">
+                                <p className="text-orange-100 text-xs font-bold uppercase tracking-widest">Total Commission (Profit)</p>
+                                <p className="text-4xl font-black mt-2">₹{systemEarnings?.totalCompanyEarnings?.toFixed(2) || '0'}</p>
+                            </Card>
+                            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-none shadow-blue-100">
+                                <p className="text-blue-100 text-xs font-bold uppercase tracking-widest">Delivery Payouts</p>
+                                <p className="text-4xl font-black mt-2">₹{systemEarnings?.totalDeliveryEarnings?.toFixed(2) || '0'}</p>
+                            </Card>
+                            <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-none shadow-green-100">
+                                <p className="text-green-100 text-xs font-bold uppercase tracking-widest">Vendor Earnings</p>
+                                <p className="text-4xl font-black mt-2">₹{systemEarnings?.totalVendorEarnings?.toFixed(2) || '0'}</p>
+                            </Card>
+                        </div>
+                    </div>
+
+                    <Card>
+                        <h3 className="font-bold text-gray-900 mb-4">Commission Rates</h3>
+                        <div className="flex flex-wrap gap-5 items-end">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Company %</label>
+                                <input type="number" value={commissionRates.companyRate}
+                                    onChange={(e) => setCommissionRates({ ...commissionRates, companyRate: Number(e.target.value) })}
+                                    className="w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Delivery %</label>
+                                <input type="number" value={commissionRates.deliveryRate}
+                                    onChange={(e) => setCommissionRates({ ...commissionRates, deliveryRate: Number(e.target.value) })}
+                                    className="w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
+                                />
+                            </div>
+                            <button onClick={handleUpdateCommission}
+                                className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors">
+                                Save Rates
+                            </button>
+                        </div>
+                    </Card>
+                </div>
             )}
 
             {/* ── Wallet tab ── */}
@@ -520,47 +663,6 @@ function AdminSection({
                 </Card>
             )}
 
-            {/* ── Earnings tab ── */}
-            {activeTab === 'earnings' && (
-                <div className="space-y-6">
-                    {systemEarnings && (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                            {[
-                                { label: 'Company Earnings', value: `₹${systemEarnings.totalCompanyEarnings?.toFixed(2)}`, accent: 'green' },
-                                { label: 'Delivery Payouts', value: `₹${systemEarnings.totalDeliveryEarnings?.toFixed(2)}`, accent: 'blue' },
-                                { label: 'Vendor Earnings',  value: `₹${systemEarnings.totalVendorEarnings?.toFixed(2)}`,  accent: 'orange' },
-                                { label: 'Total Sales',      value: `₹${systemEarnings.totalSales?.toFixed(2)}`,            accent: 'purple' },
-                            ].map(s => (
-                                <StatCard key={s.label} label={s.label} value={s.value} icon="₹" accent={s.accent} />
-                            ))}
-                        </div>
-                    )}
-                    <Card>
-                        <h3 className="font-bold text-gray-900 mb-4">Commission Rates</h3>
-                        <div className="flex flex-wrap gap-5 items-end">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Company %</label>
-                                <input type="number" value={commissionRates.companyRate}
-                                    onChange={(e) => setCommissionRates({ ...commissionRates, companyRate: Number(e.target.value) })}
-                                    className="w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Delivery %</label>
-                                <input type="number" value={commissionRates.deliveryRate}
-                                    onChange={(e) => setCommissionRates({ ...commissionRates, deliveryRate: Number(e.target.value) })}
-                                    className="w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
-                                />
-                            </div>
-                            <button onClick={handleUpdateCommission}
-                                className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors">
-                                Save Rates
-                            </button>
-                        </div>
-                    </Card>
-                </div>
-            )}
-
             {/* ── Approvals tab ── */}
             {activeTab === 'approvals' && (
                 <Card>
@@ -594,6 +696,34 @@ function AdminSection({
                         </div>
                     )}
                 </Card>
+            )}
+
+            {/* ── Settings Tab ── */}
+            {activeTab === 'settings' && (
+                <div className="space-y-6">
+                    <Card className="border-red-100 bg-red-50/20">
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="text-2xl">⚠️</span>
+                            <div>
+                                <h3 className="font-bold text-red-700">Danger Zone</h3>
+                                <p className="text-xs text-red-600/70 font-medium">Sensitive system-wide actions</p>
+                            </div>
+                        </div>
+                        
+                        <div className="p-6 bg-white border border-red-100 rounded-2xl shadow-sm">
+                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <div className="text-center sm:text-left">
+                                    <p className="font-bold text-gray-900">Reset System from Scratch</p>
+                                    <p className="text-xs text-gray-500 mt-1">Wipe all orders, products, vendors, and transactions. Start from 0.</p>
+                                </div>
+                                <button onClick={handleReset}
+                                    className="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-red-100 active:scale-95">
+                                    Destroy & Restart
+                                </button>
+                            </div>
+                        </div>
+                    </Card>
+                </div>
             )}
         </div>
     );
@@ -879,6 +1009,7 @@ const Dashboard = () => {
                         systemEarnings={systemEarnings} commissionRates={commissionRates} setCommissionRates={setCommissionRates}
                         handleUserSearch={handleUserSearch} handleAddFunds={handleAddFunds}
                         handleUpdateCommission={handleUpdateCommission} fetchLocations={fetchLocations}
+                        fetchAdminWalletData={fetchAdminWalletData}
                     />
                 )}
                 {user.role === 'agent'  && <AgentSection deliveries={deliveries} handleStatusUpdate={handleStatusUpdate} />}

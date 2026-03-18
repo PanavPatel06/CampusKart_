@@ -74,5 +74,7 @@ export const searchUsers = (query) => API.get(`/wallet/users?search=${query}`);
 export const getPendingUsers = () => API.get('/admin/users/pending');
 export const approveUser = (id) => API.put(`/admin/users/${id}/approve`);
 export const rejectUser = (id) => API.delete(`/admin/users/${id}/reject`);
+export const getAdminAnalytics = (type = 'weekly') => API.get(`/admin/analytics?type=${type}`);
+export const resetSystem = () => API.post('/admin/reset');
 
 export default API;
