@@ -36,6 +36,10 @@ const userSchema = new mongoose.Schema({
     timestamps: true,
 });
 
+// Indexes for performance
+userSchema.index({ role: 1 });
+userSchema.index({ isApproved: 1 });
+
 // Match user entered password to hashed password in database
 userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password);

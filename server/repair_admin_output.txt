@@ -1,0 +1,5 @@
+[dotenv@17.2.3] injecting env (7) from .env -- tip: ??????  override existing env vars with { override: true }
+MongoDB Connected
+admin@campuskart.com updated to: admin123
+admin_new@campuskart.com updated to: admin123
+All admin accounts marked as approved.

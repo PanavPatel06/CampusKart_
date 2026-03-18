@@ -1,0 +1,7 @@
+[dotenv@17.2.3] injecting env (7) from .env -- tip: ??????  suppress all logs with { quiet: true }
+MongoDB Connected
+Admins found: 4
+Email: admin@campuskart.com, Approved: true, Role: admin
+Email: admin@gmail.com, Approved: false, Role: admin
+Email: jkl@gmail.com, Approved: false, Role: admin
+Email: admin_new@campuskart.com, Approved: false, Role: admin

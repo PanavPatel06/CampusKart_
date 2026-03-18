@@ -46,7 +46,8 @@ const registerUser = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
-                token: generateToken(user._id),
+                token: isApprovedReq ? generateToken(user._id) : undefined,
+                message: isApprovedReq ? undefined : 'Registration successful! Your account is pending admin approval.'
             });
         } else {
             res.status(400).json({ message: 'Invalid user data' });

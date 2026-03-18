@@ -62,24 +62,20 @@ const resetSystem = async (req, res) => {
         const Product = require('../models/Product');
         const Vendor = require('../models/Vendor');
 
-        // Delete all transactional data
+        // Delete all transactional and product data
         await Order.deleteMany({});
         await Transaction.deleteMany({});
         await Product.deleteMany({});
         await Vendor.deleteMany({});
 
-        // Reset all user wallets to 0 (except admin?)
-        // Actually the user said "everything restart", so let's reset all.
-        await User.updateMany({}, { $set: { walletBalance: 0, isApproved: false } });
-        
-        // Re-approve the current admin
-        const currentAdmin = await User.findById(req.user._id);
-        if (currentAdmin) {
-            currentAdmin.isApproved = true;
-            await currentAdmin.save();
-        }
+        // Delete all users EXCEPT admins
+        // This ensures "Student", "Vendor", and "Agent" accounts are wiped clean so they can re-register.
+        await User.deleteMany({ role: { $ne: 'admin' } });
 
-        res.json({ message: 'System reset successfully. All data cleared.' });
+        // Reset admin wallet balances to 0
+        await User.updateMany({ role: 'admin' }, { $set: { walletBalance: 0, referralBalance: 0 } });
+
+        res.json({ message: 'System reset successfully. All users (except admins) and data cleared.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

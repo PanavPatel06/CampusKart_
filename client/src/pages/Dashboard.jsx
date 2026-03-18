@@ -18,9 +18,16 @@ import {
 import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
 
-const socket = io('http://localhost:5001');
+const socket = io('http://localhost:5000');
 
 // ─── helpers ──────────────────────────────────────────────────────────────
+const ROLE_LABEL = {
+    user:   'Student',
+    vendor: 'Vendor',
+    agent:  'Delivery Agent',
+    admin:  'Admin'
+};
+
 function cn(...c) { return c.filter(Boolean).join(' '); }
 
 function StatusBadge({ status }) {
@@ -860,8 +867,12 @@ const Dashboard = () => {
 
     const fetchAdminWalletData = async () => {
         try {
-            const earningsRes = await getSystemEarnings(); setSystemEarnings(earningsRes.data);
-            const commRes     = await getCommissionRates(); setCommissionRates(commRes.data);
+            const [earningsRes, commRes] = await Promise.all([
+                getSystemEarnings(),
+                getCommissionRates()
+            ]);
+            setSystemEarnings(earningsRes.data);
+            setCommissionRates(commRes.data);
         } catch (e) { console.error('Failed to fetch admin wallet data', e); }
     };
 
@@ -870,16 +881,34 @@ const Dashboard = () => {
             try {
                 let orderData = []; let deliveryData = [];
                 if (user.role === 'vendor') {
-                    const r = await getVendorOrders(); orderData = r.data;
-                    fetchLocations();
-                    try { const rp = await getVendorProducts(); setVendorProducts(rp.data); } catch {}
+                    const [ordersRes, locationsRes, productsRes] = await Promise.all([
+                        getVendorOrders(),
+                        getLocations(),
+                        getVendorProducts().catch(() => ({ data: [] }))
+                    ]);
+                    orderData = ordersRes.data;
+                    setLocations(locationsRes.data);
+                    setVendorProducts(productsRes.data);
                 } else if (user.role === 'user') {
-                    const r = await getMyOrders(); orderData = r.data;
-                    try { const { data } = await getMyWallet(); console.log('[Dashboard] Wallet data:', data); setUserWalletBalance(data.balance); } catch (walletErr) { console.error('[Dashboard] Wallet fetch error:', walletErr); }
-                    try { const r2 = await getMyDeliveries(); deliveryData = r2.data; } catch {}
+                    const [ordersRes, walletRes, deliveriesRes] = await Promise.all([
+                        getMyOrders(),
+                        getMyWallet().catch(() => ({ data: { balance: 0 } })),
+                        getMyDeliveries().catch(() => ({ data: [] }))
+                    ]);
+                    orderData = ordersRes.data;
+                    setUserWalletBalance(walletRes.data.balance);
+                    deliveryData = deliveriesRes.data;
                 } else if (user.role === 'admin') {
-                    const r = await getAllOrders(); orderData = r.data;
-                    fetchLocations(); fetchAdminWalletData();
+                    const [ordersRes, locationsRes, earningsRes, commRes] = await Promise.all([
+                        getAllOrders(),
+                        getLocations(),
+                        getSystemEarnings(),
+                        getCommissionRates()
+                    ]);
+                    orderData = ordersRes.data;
+                    setLocations(locationsRes.data);
+                    setSystemEarnings(earningsRes.data);
+                    setCommissionRates(commRes.data);
                 } else if (user.role === 'agent') {
                     const r = await getMyDeliveries(); deliveryData = r.data;
                 }

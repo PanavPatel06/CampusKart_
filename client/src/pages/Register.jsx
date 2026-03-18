@@ -32,8 +32,13 @@ const Register = () => {
         setError(null);
         setLoading(true);
         try {
-            await register(formData);
-            navigate('/dashboard');
+            const data = await register(formData);
+            if (data.token) {
+                navigate('/dashboard');
+            } else {
+                alert(data.message || 'Registration successful! Please wait for admin approval before logging in.');
+                navigate('/login');
+            }
         } catch (err) {
             setError(err.response?.data?.message || 'Registration failed');
         } finally {
