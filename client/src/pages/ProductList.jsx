@@ -6,19 +6,20 @@ import { getAllProducts } from '../services/api';
 import { Link } from 'react-router-dom';
 import CartContext from '../context/CartContext';
 import AuthContext from '../context/AuthContext';
+import { Search, ShoppingBag } from 'lucide-react';
 
 // ─── Skeleton card ─────────────────────────────────────────────────────────
 function SkeletonCard() {
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="h-40 bg-gradient-to-r from-gray-100 via-gray-200 to-gray-100 bg-[length:200%_100%] animate-[shimmer_1.5s_infinite_linear]" />
             <div className="p-5 space-y-3">
-                <div className="h-4 bg-gray-100 rounded-lg animate-pulse w-3/4" />
-                <div className="h-3 bg-gray-100 rounded-lg animate-pulse w-full" />
-                <div className="h-3 bg-gray-100 rounded-lg animate-pulse w-2/3" />
+                <div className="h-4 bg-gray-50/80 rounded-lg animate-pulse w-3/4" />
+                <div className="h-3 bg-gray-50/80 rounded-lg animate-pulse w-full" />
+                <div className="h-3 bg-gray-50/80 rounded-lg animate-pulse w-2/3" />
                 <div className="flex items-center justify-between pt-2">
-                    <div className="h-6 bg-gray-100 rounded-lg animate-pulse w-16" />
-                    <div className="h-9 bg-gray-100 rounded-xl animate-pulse w-24" />
+                    <div className="h-6 bg-gray-50/80 rounded-lg animate-pulse w-16" />
+                    <div className="h-9 bg-gray-50/80 rounded-lg animate-pulse w-24" />
                 </div>
             </div>
         </div>
@@ -28,14 +29,14 @@ function SkeletonCard() {
 // ─── Product card ──────────────────────────────────────────────────────────
 function ProductCard({ product, onAddToCart, justAdded, userRole }) {
     return (
-        <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
+        <div className="group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden flex flex-col">
             {/* Image area */}
-            <div className="relative h-40 bg-gradient-to-br from-orange-50 to-amber-50 overflow-hidden">
+            <div className="relative h-40 bg-gradient-to-br from-indigo-600/10 to-indigo-600/5 overflow-hidden">
                 {product.image ? (
                     <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-5xl opacity-25 group-hover:scale-110 transition-transform duration-500 select-none">
-                        🛍️
+                        <ShoppingBag className="w-5 h-5 shrink-0" />
                     </div>
                 )}
             </div>
@@ -43,7 +44,7 @@ function ProductCard({ product, onAddToCart, justAdded, userRole }) {
             {/* Body */}
             <div className="flex flex-col flex-1 p-5 gap-3">
                 <div className="flex-1">
-                    <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 group-hover:text-orange-600 transition-colors">
+                    <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 group-hover:text-indigo-600 transition-colors">
                         {product.name}
                     </h3>
                 </div>
@@ -52,10 +53,10 @@ function ProductCard({ product, onAddToCart, justAdded, userRole }) {
                     {userRole === 'user' && (
                         <button
                             onClick={() => onAddToCart(product)}
-                            className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400 ${
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 ${
                                 justAdded
                                     ? 'bg-green-500 text-white shadow-sm'
-                                    : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md shadow-orange-200 hover:shadow-lg active:scale-95'
+                                    : 'bg-indigo-600 text-white hover:bg-indigo-600 text-white shadow-md shadow-indigo-500/20 hover:shadow-lg active:scale-95'
                             }`}
                         >
                             {justAdded ? '✓ Added' : '+ Cart'}
@@ -105,19 +106,19 @@ const ProductList = () => {
     );
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-orange-50/40 to-white">
+        <div className="min-h-screen bg-gradient-to-b from-indigo-600/10 to-white">
             {/* Hero header */}
-            <div className="bg-gradient-to-r from-orange-500 to-rose-500">
+            <div className="bg-gradient-to-r from-indigo-600 to-indigo-600">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="text-white">
                             <h2 className="text-2xl sm:text-3xl font-black tracking-tight">Campus Marketplace</h2>
-                            <p className="text-orange-100 text-sm mt-1">
+                            <p className="text-indigo-600 text-sm mt-1">
                                 {loading ? 'Loading…' : `${products.length} products available`}
                             </p>
                         </div>
                         <Link to="/dashboard"
-                            className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors w-fit">
+                            className="inline-flex items-center gap-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors w-fit">
                             ← Dashboard
                         </Link>
                     </div>
@@ -128,18 +129,16 @@ const ProductList = () => {
                 {/* Search */}
                 <div className="flex gap-3 mb-8">
                     <div className="relative flex-1">
-                        <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                         <input
                             type="search" value={search} onChange={e => setSearch(e.target.value)}
                             placeholder="Search products, vendors…"
-                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
+                            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg text-sm placeholder:text-gray-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                         />
                     </div>
                     {search && (
                         <button onClick={() => setSearch('')}
-                            className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
+                            className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-900 bg-white border border-gray-200 rounded-lg hover:bg-gray-50/80 transition-colors shadow-sm">
                             Clear
                         </button>
                     )}
@@ -152,8 +151,8 @@ const ProductList = () => {
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="text-5xl mb-4 opacity-40">🛍️</div>
-                        <h3 className="text-lg font-bold text-gray-800 mb-2">
+                        <div className="text-5xl mb-4 opacity-40"><ShoppingBag className="w-5 h-5 shrink-0" /></div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">
                             {search ? `No results for "${search}"` : 'No products yet'}
                         </h3>
                         <p className="text-sm text-gray-500 max-w-xs">
@@ -161,7 +160,7 @@ const ProductList = () => {
                         </p>
                         {search && (
                             <button onClick={() => setSearch('')}
-                                className="mt-5 px-5 py-2.5 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
+                                className="mt-5 px-5 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-gray-900 hover:bg-gray-50/80 transition-colors shadow-sm">
                                 Clear search
                             </button>
                         )}

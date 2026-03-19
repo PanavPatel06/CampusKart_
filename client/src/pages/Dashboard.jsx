@@ -17,6 +17,7 @@ import {
 } from 'recharts';
 import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import { BarChart as LucideBarChart, ShoppingBag, Search, AlertTriangle, Wallet, XCircle, ShieldCheck, MapPin, Inbox, TrendingUp, CheckCircle, Settings, Hourglass, Printer, Package, Bike } from 'lucide-react';
 
 const socket = io('http://localhost:5000');
 
@@ -34,18 +35,18 @@ function StatusBadge({ status }) {
     const map = {
         pending:          'bg-amber-100 text-amber-800',
         processing:       'bg-amber-100 text-amber-800', // user sees this when vendor accepts
-        accepted:         'bg-blue-100 text-blue-800',
-        confirmed:        'bg-indigo-100 text-indigo-800', // user sees this when agent accepts
-        preparing:        'bg-blue-100 text-blue-800',
+        accepted:         'bg-indigo-100 text-blue-800',
+        confirmed:        'bg-indigo-600 text-white text-indigo-600', // user sees this when agent accepts
+        preparing:        'bg-indigo-100 text-blue-800',
         ready:            'bg-purple-100 text-purple-800',
         agent_requested:  'bg-purple-100 text-purple-800',
-        out_for_delivery: 'bg-indigo-100 text-indigo-800',
+        out_for_delivery: 'bg-indigo-600 text-white text-indigo-600',
         delivered:        'bg-green-100 text-green-700',
         cancelled:        'bg-red-100 text-red-700',
         rejected:         'bg-red-100 text-red-700',
     };
     return (
-        <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize', map[status] || 'bg-gray-100 text-gray-700')}>
+        <span className={cn('px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize', map[status] || 'bg-gray-50/80 text-gray-900')}>
             {status?.replace(/_/g, ' ')}
         </span>
     );
@@ -53,14 +54,14 @@ function StatusBadge({ status }) {
 
 function StatCard({ label, value, icon, accent }) {
     const colors = {
-        orange: 'from-orange-400 to-orange-600 shadow-orange-200',
+        orange: 'from-indigo-600 to-indigo-600 shadow-indigo-500/20',
         green:  'from-green-400 to-green-600 shadow-green-200',
-        blue:   'from-blue-400 to-blue-600 shadow-blue-200',
+        blue:   'from-blue-400 to-blue-600 shadow-indigo-200',
         purple: 'from-purple-400 to-purple-600 shadow-purple-200',
     };
     return (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
-            <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center text-xl text-white shadow-md shrink-0', colors[accent || 'orange'])}>
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+            <div className={cn('w-12 h-12 rounded-lg bg-gradient-to-br flex items-center justify-center text-xl text-white shadow-md shrink-0', colors[accent || 'orange'])}>
                 {icon}
             </div>
             <div>
@@ -72,7 +73,7 @@ function StatCard({ label, value, icon, accent }) {
 }
 
 function Card({ children, className }) {
-    return <div className={cn('bg-white rounded-2xl border border-gray-100 shadow-sm p-6', className)}>{children}</div>;
+    return <div className={cn('bg-white rounded-xl border border-gray-200 shadow-sm p-6', className)}>{children}</div>;
 }
 
 function SectionTitle({ children }) {
@@ -84,16 +85,16 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate, handleClea
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatCard label="Wallet Balance" value={`₹${userWalletBalance ?? 0}`} icon="💰" accent="green" />
-                <StatCard label="Total Orders"   value={orders.length}                                   icon="📦" accent="orange" />
-                <StatCard label="Delivered"       value={orders.filter(o => o.status === 'delivered').length} icon="✅" accent="blue" />
+                <StatCard label="Wallet Balance" value={`₹${userWalletBalance ?? 0}`} icon={<Wallet className="w-5 h-5 shrink-0" />} accent="green" />
+                <StatCard label="Total Orders"   value={orders.length}                                   icon={<Package className="w-5 h-5 shrink-0" />} accent="orange" />
+                <StatCard label="Delivered"       value={orders.filter(o => o.status === 'delivered').length} icon={<CheckCircle className="w-5 h-5 shrink-0" />} accent="blue" />
             </div>
 
             <Card>
                 <SectionTitle>Quick Actions</SectionTitle>
                 <div className="flex flex-wrap gap-3">
-                    <a href="/products"    className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm">🛍️ Browse Products</a>
-                    <a href="/print-order" className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-800 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm">🖨️ New Print Order</a>
+                    <a href="/products"    className="inline-flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"><ShoppingBag className="w-5 h-5 shrink-0" /> Browse Products</a>
+                    <a href="/print-order" className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50/80 text-gray-900 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"><Printer className="w-5 h-5 shrink-0" /> New Print Order</a>
                 </div>
             </Card>
 
@@ -102,7 +103,7 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate, handleClea
                     <SectionTitle>My Orders</SectionTitle>
                     {orders.length > 0 && (
                         <button onClick={handleClearHistory}
-                            className="inline-flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-red-600 transition-colors uppercase tracking-widest bg-gray-50 hover:bg-red-50 border border-gray-200 hover:border-red-200 px-3 py-1.5 rounded-lg shrink-0"
+                            className="inline-flex items-center gap-2 text-xs font-semibold text-gray-500 hover:text-red-600 transition-colors uppercase tracking-widest bg-gray-50/80 hover:bg-red-50 border border-gray-200 hover:border-red-200 px-3 py-1.5 rounded-lg shrink-0"
                             title="Clear completed/cancelled orders from view">
                             🗑️ Clear History
                         </button>
@@ -110,16 +111,16 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate, handleClea
                 </div>
                 {orders.length === 0 ? (
                     <div className="text-center py-10">
-                        <div className="text-4xl mb-3 opacity-40">📭</div>
+                        <div className="text-4xl mb-3 opacity-40"><Inbox className="w-10 h-10 shrink-0" /></div>
                         <p className="text-gray-500 font-medium text-sm">No orders yet</p>
-                        <a href="/products" className="text-sm font-semibold text-orange-500 hover:underline mt-2 inline-block">Browse Products →</a>
+                        <a href="/products" className="text-sm font-semibold text-indigo-600 hover:underline mt-2 inline-block">Browse Products →</a>
                     </div>
                 ) : (
                     <div className="space-y-3">
                         {orders.map(order => (
-                            <div key={order._id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                            <div key={order._id} className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-lg border border-gray-200 bg-gray-50/80/50 hover:bg-gray-50/80 transition-colors">
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-xs font-mono text-gray-400">#{order._id.slice(-6).toUpperCase()}</p>
+                                    <p className="text-xs font-mono text-gray-500">#{order._id.slice(-6).toUpperCase()}</p>
                                     <p className="font-bold text-gray-900 text-sm">₹{order.totalAmount}</p>
                                     <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
                                 </div>
@@ -142,8 +143,8 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate, handleClea
                                     )}
                                 </div>
                                 {order.status === 'out_for_delivery' && (
-                                    <div className="w-full sm:w-auto p-3 bg-blue-50 border border-blue-200 rounded-xl text-center">
-                                        <p className="text-xs text-blue-700 font-bold mb-1">Share OTP with Agent</p>
+                                    <div className="w-full sm:w-auto p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-center">
+                                        <p className="text-xs text-indigo-700 font-bold mb-1">Share OTP with Agent</p>
                                         <p className="text-2xl font-mono font-black tracking-[0.3em] text-blue-900">
                                             {order.deliveryOtp || '----'}
                                         </p>
@@ -168,26 +169,26 @@ function VendorSection({
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatCard label="Total Orders"  value={orders.length} icon="📦" accent="orange" />
-                <StatCard label="Pending"        value={orders.filter(o => o.status === 'pending').length} icon="⏳" accent="blue" />
-                <StatCard label="Delivered"      value={orders.filter(o => o.status === 'delivered').length} icon="✅" accent="green" />
+                <StatCard label="Total Orders"  value={orders.length} icon={<Package className="w-5 h-5 shrink-0" />} accent="orange" />
+                <StatCard label="Pending"        value={orders.filter(o => o.status === 'pending').length} icon={<Hourglass className="w-5 h-5 shrink-0" />} accent="blue" />
+                <StatCard label="Delivered"      value={orders.filter(o => o.status === 'delivered').length} icon={<CheckCircle className="w-5 h-5 shrink-0" />} accent="green" />
             </div>
 
             <Card>
                 <div className="flex items-center justify-between mb-5">
                     <SectionTitle>Manage Products</SectionTitle>
-                    <Link to="/add-product" className="inline-flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors shadow-sm">
+                    <Link to="/add-product" className="inline-flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm">
                         + Add Product
                     </Link>
                 </div>
                 {products && products.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
                         {products.map(product => (
-                            <div key={product._id} className="flex gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                            <div key={product._id} className="flex gap-4 p-4 rounded-lg border border-gray-200 bg-gray-50/80/50 hover:bg-gray-50/80 transition-colors">
                                 {product.image ? (
-                                    <img src={product.image} alt={product.name} className="w-16 h-16 rounded-lg object-cover shrink-0 bg-gray-200 border border-gray-200" />
+                                    <img src={product.image} alt={product.name} className="w-16 h-16 rounded-lg object-cover shrink-0 bg-gray-50/80 border border-gray-200" />
                                 ) : (
-                                    <div className="w-16 h-16 rounded-lg bg-gray-200 border border-gray-200 flex items-center justify-center text-xl shrink-0">🛍️</div>
+                                    <div className="w-16 h-16 rounded-lg bg-gray-50/80 border border-gray-200 flex items-center justify-center text-xl shrink-0"><ShoppingBag className="w-5 h-5 shrink-0" /></div>
                                 )}
                                 <div className="flex-1 min-w-0 flex flex-col justify-between">
                                     <div>
@@ -195,7 +196,7 @@ function VendorSection({
                                         <p className="text-gray-500 text-xs mt-0.5 font-bold">₹{product.price}</p>
                                     </div>
                                     <div className="flex gap-3 mt-2">
-                                        <Link to="/add-product" state={{ product }} className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors">Edit</Link>
+                                        <Link to="/add-product" state={{ product }} className="text-xs font-semibold text-indigo-600 hover:text-blue-800 transition-colors">Edit</Link>
                                         <button onClick={() => handleDeleteProduct(product._id)} className="text-xs font-semibold text-red-600 hover:text-red-800 transition-colors">Delete</button>
                                     </div>
                                 </div>
@@ -214,24 +215,24 @@ function VendorSection({
                 <div className="flex gap-2 mb-5">
                     <input type="text" placeholder="New location (e.g. Hostel A)"
                         value={newLocation} onChange={e => setNewLocation(e.target.value)}
-                        className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
+                        className="flex-1 px-4 py-2.5 bg-gray-50/80 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                     />
                     <button onClick={async () => {
                         if (!newLocation.trim()) return;
                         try { await addLocation(newLocation.trim()); setNewLocation(''); fetchLocations(); }
                         catch (e) { alert(e.message); }
-                    }} className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
+                    }} className="px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">
                         + Add
                     </button>
                 </div>
                 {locations?.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-8">No locations added yet</p>
+                    <p className="text-sm text-gray-500 text-center py-8">No locations added yet</p>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-[300px] overflow-y-auto pr-2">
                         {locations?.map(loc => (
-                            <div key={loc._id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 group">
-                                <span className="text-sm font-medium text-gray-800 flex items-center gap-2">
-                                    <span className="text-gray-400">📍</span>{loc.name}
+                            <div key={loc._id} className="flex items-center justify-between bg-gray-50/80 border border-gray-200 rounded-lg px-4 py-3 group">
+                                <span className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                    <span className="text-gray-500"><MapPin className="w-5 h-5 shrink-0" /></span>{loc.name}
                                 </span>
                                 <button onClick={async () => {
                                     if (window.confirm('Delete this location?')) {
@@ -250,16 +251,16 @@ function VendorSection({
                 <SectionTitle>Incoming Orders</SectionTitle>
                 {orders.length === 0 ? (
                     <div className="text-center py-10">
-                        <div className="text-4xl mb-3 opacity-40">📭</div>
+                        <div className="text-4xl mb-3 opacity-40"><Inbox className="w-10 h-10 shrink-0" /></div>
                         <p className="text-gray-500 text-sm font-medium">No orders yet</p>
                     </div>
                 ) : (
                     <div className="space-y-4">
                         {orders.map(order => (
-                            <div key={order._id} className="border border-gray-100 rounded-xl p-4 bg-gray-50/40 hover:bg-gray-50 transition-colors">
+                            <div key={order._id} className="border border-gray-200 rounded-lg p-4 bg-gray-50/80/40 hover:bg-gray-50/80 transition-colors">
                                 <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
                                     <div>
-                                        <p className="text-xs font-mono text-gray-400">#{order._id.slice(-6).toUpperCase()}</p>
+                                        <p className="text-xs font-mono text-gray-500">#{order._id.slice(-6).toUpperCase()}</p>
                                         <p className="font-semibold text-sm text-gray-900">Customer: {order.customer?.name || 'Unknown'}</p>
                                         <p className="font-black text-gray-900 mt-0.5">₹{order.totalAmount}</p>
                                     </div>
@@ -267,7 +268,7 @@ function VendorSection({
                                 </div>
 
                                 {order.instructions && (
-                                    <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-gray-700">
+                                    <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-xs text-gray-900">
                                         <span className="font-bold text-amber-700">Note:</span> {order.instructions}
                                     </div>
                                 )}
@@ -275,7 +276,7 @@ function VendorSection({
                                 {/* Order items */}
                                 <div className="mb-3 pl-3 border-l-2 border-gray-200 space-y-1.5">
                                     {order.items?.map((item, idx) => (
-                                        <div key={idx} className="text-xs text-gray-700">
+                                        <div key={idx} className="text-xs text-gray-900">
                                             <p className="font-semibold">{item.name}</p>
                                             {item.printOptions && (
                                                 <p className="text-gray-500">
@@ -284,7 +285,7 @@ function VendorSection({
                                             )}
                                             {item.fileUrl && (
                                                 <a href={item.fileUrl} target="_blank" rel="noopener noreferrer"
-                                                    className="text-orange-500 hover:underline font-semibold block mt-0.5">
+                                                    className="text-indigo-600 hover:underline font-semibold block mt-0.5">
                                                     View PDF ↗
                                                 </a>
                                             )}
@@ -293,15 +294,15 @@ function VendorSection({
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex gap-2 flex-wrap border-t border-gray-100 pt-3">
+                                <div className="flex gap-2 flex-wrap border-t border-gray-200 pt-3">
                                     {order.status === 'pending' && (
                                         <>
                                             <button onClick={() => handleStatusUpdate(order._id, 'accepted')}
-                                                className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-xl transition-colors">
+                                                className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition-colors">
                                                 ✓ Accept
                                             </button>
                                             <button onClick={() => handleStatusUpdate(order._id, 'rejected')}
-                                                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-xl transition-colors">
+                                                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors">
                                                 ✕ Reject
                                             </button>
                                         </>
@@ -313,7 +314,7 @@ function VendorSection({
                                         <p className="text-xs text-red-500 font-semibold py-2">❌ Order rejected</p>
                                     )}
                                     {order.status === 'out_for_delivery' && (
-                                        <p className="text-xs text-blue-600 font-semibold py-2">🛵 Out for delivery</p>
+                                        <p className="text-xs text-indigo-600 font-semibold py-2"><Bike className="w-5 h-5 shrink-0" /> Out for delivery</p>
                                     )}
                                 </div>
                             </div>
@@ -408,31 +409,31 @@ function AdminSection({
     };
 
     const tabs = [
-        { id: 'orders',    label: 'Orders',      icon: '📦' },
-        { id: 'wallet',    label: 'Wallet',      icon: '💰' },
-        { id: 'locations', label: 'Locations',   icon: '📍' },
-        { id: 'earnings',  label: 'Analytics',   icon: '📈' },
-        { id: 'approvals', label: 'Approvals',   icon: '🛡️' },
-        { id: 'settings',  label: 'Settings',    icon: '⚙️' },
+        { id: 'orders',    label: 'Orders',      icon: <Package className="w-5 h-5 shrink-0" /> },
+        { id: 'wallet',    label: 'Wallet',      icon: <Wallet className="w-5 h-5 shrink-0" /> },
+        { id: 'locations', label: 'Locations',   icon: <MapPin className="w-5 h-5 shrink-0" /> },
+        { id: 'earnings',  label: 'Analytics',   icon: <TrendingUp className="w-5 h-5 shrink-0" /> },
+        { id: 'approvals', label: 'Approvals',   icon: <ShieldCheck className="w-5 h-5 shrink-0" /> },
+        { id: 'settings',  label: 'Settings',    icon: <Settings className="w-5 h-5 shrink-0" /> },
     ];
     const [newLocation, setNewLocation] = useState('');
 
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <StatCard label="Total Orders"  value={orders.length} icon="📦" accent="orange" />
-                <StatCard label="Delivered"      value={orders.filter(o => o.status === 'delivered').length} icon="✅" accent="green" />
-                <StatCard label="Net Revenue"        value={systemEarnings ? `₹${systemEarnings.totalCompanyEarnings?.toFixed(0)}` : '—'} icon="💹" accent="blue" />
-                <StatCard label="Total Sales"      value={systemEarnings ? `₹${systemEarnings.totalSales?.toFixed(0)}` : '—'} icon="💰" accent="purple" />
+                <StatCard label="Total Orders"  value={orders.length} icon={<Package className="w-5 h-5 shrink-0" />} accent="orange" />
+                <StatCard label="Delivered"      value={orders.filter(o => o.status === 'delivered').length} icon={<CheckCircle className="w-5 h-5 shrink-0" />} accent="green" />
+                <StatCard label="Net Revenue"        value={systemEarnings ? `₹${systemEarnings.totalCompanyEarnings?.toFixed(0)}` : '—'} icon={<BarChart className="w-5 h-5 shrink-0" />} accent="blue" />
+                <StatCard label="Total Sales"      value={systemEarnings ? `₹${systemEarnings.totalSales?.toFixed(0)}` : '—'} icon={<Wallet className="w-5 h-5 shrink-0" />} accent="purple" />
             </div>
 
             {/* Tab bar */}
-            <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+            <div className="flex gap-1 bg-gray-50/80 p-1 rounded-lg">
                 {tabs.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                         className={cn(
                             'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200',
-                            activeTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                            activeTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
                         )}>
                         <span>{tab.icon}</span>
                         <span className="hidden sm:inline">{tab.label}</span>
@@ -443,13 +444,13 @@ function AdminSection({
             {/* ── Orders tab ── */}
             {activeTab === 'orders' && (
                 <Card className="overflow-hidden p-0">
-                    <div className="p-5 border-b border-gray-100">
+                    <div className="p-5 border-b border-gray-200">
                         <h3 className="font-bold text-gray-900">All Orders</h3>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="min-w-full text-sm">
                             <thead>
-                                <tr className="border-b border-gray-100 bg-gray-50">
+                                <tr className="border-b border-gray-200 bg-gray-50/80">
                                     {['Order ID','Customer','Items','Location','Status','Amount'].map(h => (
                                         <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
                                     ))}
@@ -457,16 +458,16 @@ function AdminSection({
                             </thead>
                             <tbody>
                                 {orders.map(order => (
-                                    <tr key={order._id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                                    <tr key={order._id} className="border-b border-gray-50 hover:bg-gray-50/80 transition-colors">
                                         <td className="px-4 py-3.5 font-mono text-xs text-gray-500">{order._id.slice(-6).toUpperCase()}</td>
                                         <td className="px-4 py-3.5">
-                                            <p className="text-gray-800 font-medium">{order.customer?.name || 'User'}</p>
-                                            <p className="text-[10px] text-gray-400 truncate max-w-[120px]">{order.customer?.email}</p>
+                                            <p className="text-gray-900 font-medium">{order.customer?.name || 'User'}</p>
+                                            <p className="text-[10px] text-gray-500 truncate max-w-[120px]">{order.customer?.email}</p>
                                         </td>
-                                        <td className="px-4 py-3.5 text-gray-600 max-w-xs">
+                                        <td className="px-4 py-3.5 text-gray-500 max-w-xs">
                                             <div className="flex flex-wrap gap-1">
                                                 {order.items?.map((it, i) => (
-                                                    <span key={i} className="bg-gray-100 text-[10px] font-bold px-1.5 py-0.5 rounded border border-gray-200">
+                                                    <span key={i} className="bg-gray-50/80 text-[10px] font-bold px-1.5 py-0.5 rounded border border-gray-200">
                                                         {it.qty}x {it.name}
                                                     </span>
                                                 ))}
@@ -480,7 +481,7 @@ function AdminSection({
                             </tbody>
                         </table>
                         {orders.length === 0 && (
-                            <p className="text-center py-10 text-gray-400 text-sm">No orders found</p>
+                            <p className="text-center py-10 text-gray-500 text-sm">No orders found</p>
                         )}
                     </div>
                 </Card>
@@ -493,11 +494,11 @@ function AdminSection({
                         <Card className="md:col-span-2">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="font-bold text-gray-900">Revenue Growth</h3>
-                                <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100">
+                                <div className="flex bg-gray-50/80 p-1 rounded-lg border border-gray-200">
                                     {['weekly', 'monthly', 'yearly'].map(t => (
                                         <button key={t} onClick={() => setAnalyticsType(t)}
                                             className={cn('px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest transition-all',
-                                                analyticsType === t ? 'bg-white text-orange-500 shadow-sm' : 'text-gray-400 hover:text-gray-600')}>
+                                                analyticsType === t ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-500')}>
                                             {t}
                                         </button>
                                     ))}
@@ -507,7 +508,7 @@ function AdminSection({
                             <div className="h-[300px] w-full mt-4">
                                 {loadingAnalytics ? (
                                     <div className="h-full flex items-center justify-center">
-                                        <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                                        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
                                     </div>
                                 ) : analyticsData.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
@@ -527,7 +528,7 @@ function AdminSection({
                                         </BarChart>
                                     </ResponsiveContainer>
                                 ) : (
-                                    <div className="h-full flex items-center justify-center text-gray-400 text-sm font-medium">
+                                    <div className="h-full flex items-center justify-center text-gray-500 text-sm font-medium">
                                         No data available for this period
                                     </div>
                                 )}
@@ -535,8 +536,8 @@ function AdminSection({
                         </Card>
                         
                         <div className="space-y-4">
-                            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-none shadow-orange-100">
-                                <p className="text-orange-100 text-xs font-bold uppercase tracking-widest">Total Commission (Profit)</p>
+                            <Card className="bg-gradient-to-br from-indigo-600 to-indigo-600 text-white border-none shadow-indigo-500/20">
+                                <p className="text-indigo-600 text-xs font-bold uppercase tracking-widest">Total Commission (Profit)</p>
                                 <p className="text-4xl font-black mt-2">₹{systemEarnings?.totalCompanyEarnings?.toFixed(2) || '0'}</p>
                             </Card>
                             <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-none shadow-blue-100">
@@ -557,18 +558,18 @@ function AdminSection({
                                 <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Company %</label>
                                 <input type="number" value={commissionRates.companyRate}
                                     onChange={(e) => setCommissionRates({ ...commissionRates, companyRate: Number(e.target.value) })}
-                                    className="w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
+                                    className="w-24 px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                                 />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Delivery %</label>
                                 <input type="number" value={commissionRates.deliveryRate}
                                     onChange={(e) => setCommissionRates({ ...commissionRates, deliveryRate: Number(e.target.value) })}
-                                    className="w-24 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
+                                    className="w-24 px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                                 />
                             </div>
                             <button onClick={handleUpdateCommission}
-                                className="px-5 py-2.5 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors">
+                                className="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors">
                                 Save Rates
                             </button>
                         </div>
@@ -582,25 +583,23 @@ function AdminSection({
                     <h3 className="font-bold text-gray-900 mb-5">Add Funds to User Wallet</h3>
                     <form onSubmit={handleUserSearch} className="flex gap-2 mb-4">
                         <div className="relative flex-1">
-                            <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                             <input type="text" placeholder="Search by name or email"
                                 value={walletSearch} onChange={(e) => setWalletSearch(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
+                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50/80 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                             />
                         </div>
-                        <button type="submit" className="px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold rounded-xl transition-colors">
+                        <button type="submit" className="px-4 py-2.5 bg-accent hover:bg-accent text-white text-sm font-semibold rounded-lg transition-colors">
                             Search
                         </button>
                     </form>
 
                     {walletUsers.length > 0 && (
-                        <div className="mb-4 border border-gray-200 rounded-xl overflow-hidden max-h-48 overflow-y-auto">
+                        <div className="mb-4 border border-gray-200 rounded-lg overflow-hidden max-h-48 overflow-y-auto">
                             {walletUsers.map(u => (
                                 <div key={u._id} onClick={() => setSelectedUser(u)}
-                                    className={cn('flex items-center justify-between px-4 py-3 cursor-pointer border-b border-gray-100 last:border-0 transition-colors text-sm',
-                                        selectedUser?._id === u._id ? 'bg-orange-50 border-l-2 border-l-orange-400' : 'hover:bg-gray-50')}>
+                                    className={cn('flex items-center justify-between px-4 py-3 cursor-pointer border-b border-gray-200 last:border-0 transition-colors text-sm',
+                                        selectedUser?._id === u._id ? 'bg-indigo-600/10 border-l-2 border-indigo-600' : 'hover:bg-gray-50/80')}>
                                     <div>
                                         <p className="font-semibold text-gray-900">{u.name}</p>
                                         <p className="text-xs text-gray-500">{u.email}</p>
@@ -612,15 +611,15 @@ function AdminSection({
                     )}
 
                     {selectedUser && (
-                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                        <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg">
                             <p className="text-sm font-semibold text-blue-800 mb-3">Adding funds to: {selectedUser.name}</p>
                             <div className="flex gap-2">
                                 <input type="number" placeholder="Amount (₹)" value={fundAmount}
                                     onChange={(e) => setFundAmount(e.target.value)}
-                                    className="flex-1 px-4 py-2.5 bg-white border border-blue-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/25 focus:border-blue-400"
+                                    className="flex-1 px-4 py-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/25 focus:border-blue-400"
                                 />
                                 <button onClick={handleAddFunds}
-                                    className="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-xl transition-colors">
+                                    className="px-5 py-2.5 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-lg transition-colors">
                                     Add Funds
                                 </button>
                             </div>
@@ -636,24 +635,24 @@ function AdminSection({
                     <div className="flex gap-2 mb-5">
                         <input type="text" placeholder="New location (e.g. Hostel A)"
                             value={newLocation} onChange={e => setNewLocation(e.target.value)}
-                            className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400/25 focus:border-orange-400 transition-all"
+                            className="flex-1 px-4 py-2.5 bg-gray-50/80 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                         />
                         <button onClick={async () => {
                             if (!newLocation.trim()) return;
                             try { await addLocation(newLocation.trim()); setNewLocation(''); fetchLocations(); }
                             catch (e) { alert(e.message); }
-                        }} className="px-5 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
+                        }} className="px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">
                             + Add
                         </button>
                     </div>
                     {locations.length === 0 ? (
-                        <p className="text-sm text-gray-400 text-center py-8">No locations added yet</p>
+                        <p className="text-sm text-gray-500 text-center py-8">No locations added yet</p>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
                             {locations.map(loc => (
-                                <div key={loc._id} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 group">
-                                    <span className="text-sm font-medium text-gray-800 flex items-center gap-2">
-                                        <span className="text-gray-400">📍</span>{loc.name}
+                                <div key={loc._id} className="flex items-center justify-between bg-gray-50/80 border border-gray-200 rounded-lg px-4 py-3 group">
+                                    <span className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                                        <span className="text-gray-500"><MapPin className="w-5 h-5 shrink-0" /></span>{loc.name}
                                     </span>
                                     <button onClick={async () => {
                                         if (window.confirm('Delete this location?')) {
@@ -675,26 +674,26 @@ function AdminSection({
                 <Card>
                     <h3 className="font-bold text-gray-900 mb-5">Pending User Registrations</h3>
                     {pendingUsers.length === 0 ? (
-                        <p className="text-center py-10 text-gray-400 text-sm">No pending registrations</p>
+                        <p className="text-center py-10 text-gray-500 text-sm">No pending registrations</p>
                     ) : (
                         <div className="space-y-3">
                             {pendingUsers.map(u => (
-                                <div key={u._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50">
+                                <div key={u._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-lg border border-gray-200 bg-gray-50/80">
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <p className="font-bold text-gray-900">{u.name}</p>
                                             <span className={cn('px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide', 
-                                                u.role === 'vendor' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'
+                                                u.role === 'vendor' ? 'bg-indigo-600 text-white text-indigo-600' : 'bg-indigo-100 text-indigo-700'
                                             )}>{u.role}</span>
                                         </div>
                                         <p className="text-sm text-gray-500 mt-0.5">{u.email}</p>
-                                        <p className="text-xs text-gray-400 mt-1">Requested: {new Date(u.createdAt).toLocaleDateString()}</p>
+                                        <p className="text-xs text-gray-500 mt-1">Requested: {new Date(u.createdAt).toLocaleDateString()}</p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0">
-                                        <button onClick={() => handleApprove(u._id)} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-xl transition-colors">
+                                        <button onClick={() => handleApprove(u._id)} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-lg transition-colors">
                                             ✓ Approve
                                         </button>
-                                        <button onClick={() => handleReject(u._id)} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-xl transition-colors">
+                                        <button onClick={() => handleReject(u._id)} className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-bold rounded-lg transition-colors">
                                             ✕ Reject
                                         </button>
                                     </div>
@@ -710,21 +709,21 @@ function AdminSection({
                 <div className="space-y-6">
                     <Card className="border-red-100 bg-red-50/20">
                         <div className="flex items-center gap-3 mb-4">
-                            <span className="text-2xl">⚠️</span>
+                            <span className="text-2xl"><AlertTriangle className="w-5 h-5 shrink-0" /></span>
                             <div>
                                 <h3 className="font-bold text-red-700">Danger Zone</h3>
                                 <p className="text-xs text-red-600/70 font-medium">Sensitive system-wide actions</p>
                             </div>
                         </div>
                         
-                        <div className="p-6 bg-white border border-red-100 rounded-2xl shadow-sm">
+                        <div className="p-6 bg-white border border-red-100 rounded-xl shadow-sm">
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                 <div className="text-center sm:text-left">
                                     <p className="font-bold text-gray-900">Reset System from Scratch</p>
                                     <p className="text-xs text-gray-500 mt-1">Wipe all orders, products, vendors, and transactions. Start from 0.</p>
                                 </div>
                                 <button onClick={handleReset}
-                                    className="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-red-100 active:scale-95">
+                                    className="w-full sm:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase tracking-widest rounded-lg transition-all shadow-lg shadow-red-100 active:scale-95">
                                     Destroy & Restart
                                 </button>
                             </div>
@@ -754,46 +753,46 @@ function AgentSection({ deliveries, handleStatusUpdate, user }) {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatCard label="Assigned"  value={deliveries.length} icon="🛵" accent="orange" />
-                <StatCard label="Active"    value={deliveries.filter(d => d.status === 'out_for_delivery').length} icon="📍" accent="blue" />
-                <StatCard label="Delivered" value={deliveries.filter(d => d.status === 'delivered').length} icon="✅" accent="green" />
+                <StatCard label="Assigned"  value={deliveries.length} icon={<Bike className="w-5 h-5 shrink-0" />} accent="orange" />
+                <StatCard label="Active"    value={deliveries.filter(d => d.status === 'out_for_delivery').length} icon={<MapPin className="w-5 h-5 shrink-0" />} accent="blue" />
+                <StatCard label="Delivered" value={deliveries.filter(d => d.status === 'delivered').length} icon={<CheckCircle className="w-5 h-5 shrink-0" />} accent="green" />
             </div>
             <Card>
                 <SectionTitle>My Deliveries</SectionTitle>
                 {deliveries.length === 0 ? (
                     <div className="text-center py-10">
-                        <div className="text-4xl mb-3 opacity-40">🛵</div>
+                        <div className="text-4xl mb-3 opacity-40"><Bike className="w-5 h-5 shrink-0" /></div>
                         <p className="text-gray-500 text-sm font-medium">No deliveries assigned</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
                         {deliveries.map(order => (
-                            <div key={order._id} className="flex flex-col gap-3 p-4 rounded-xl border border-gray-100 bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                            <div key={order._id} className="flex flex-col gap-3 p-4 rounded-lg border border-gray-200 bg-gray-50/80/50 hover:bg-gray-50/80 transition-colors">
                                 <div className="flex items-center gap-4">
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-xs font-mono text-gray-400">#{order._id.slice(-6).toUpperCase()}</p>
+                                        <p className="text-xs font-mono text-gray-500">#{order._id.slice(-6).toUpperCase()}</p>
                                         <p className="font-bold text-gray-900 text-sm">₹{order.totalAmount}</p>
                                         <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
                                     </div>
                                     <StatusBadge status={order.status} />
                                 </div>
                                 {order.status === 'accepted' && (
-                                    <div className="flex gap-2 border-t border-gray-100 pt-3">
+                                    <div className="flex gap-2 border-t border-gray-200 pt-3">
                                         <button onClick={() => handleAcceptDelivery(order)}
-                                            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-xl transition-colors w-full">
-                                            Accept Delivery 🛵
+                                            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors w-full">
+                                            Accept Delivery <Bike className="w-5 h-5 shrink-0" />
                                         </button>
                                     </div>
                                 )}
                                 {order.status === 'out_for_delivery' && (
-                                    <div className="flex gap-2 border-t border-gray-100 pt-3">
+                                    <div className="flex gap-2 border-t border-gray-200 pt-3">
                                         <input type="text" placeholder="Enter OTP from customer"
                                             value={otpInputs[order._id] || ''}
                                             onChange={e => setOtpInputs(prev => ({ ...prev, [order._id]: e.target.value }))}
-                                            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-orange-400"
+                                            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-indigo-600"
                                         />
                                         <button onClick={() => handleStatusUpdate(order._id, 'delivered', otpInputs[order._id])}
-                                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-xl transition-colors shrink-0">
+                                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-lg transition-colors shrink-0">
                                             Mark Delivered ✓
                                         </button>
                                     </div>
@@ -806,7 +805,7 @@ function AgentSection({ deliveries, handleStatusUpdate, user }) {
 
             {/* Payment Modal */}
             {paymentOrder && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-accent/60 backdrop-blur-sm">
                     <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                         <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-white text-center shadow-inner">
                             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
@@ -816,22 +815,22 @@ function AgentSection({ deliveries, handleStatusUpdate, user }) {
                             <p className="text-blue-50 text-sm mt-1 opacity-90">Confirm payment to accept this delivery.</p>
                         </div>
                         
-                        <div className="p-6 space-y-4 bg-gray-50/50">
-                            <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm text-center">
+                        <div className="p-6 space-y-4 bg-gray-50/80/50">
+                            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
                                 <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Total Bill</p>
                                 <p className="text-4xl font-black text-gray-900 tracking-tight">₹{paymentOrder.totalAmount}</p>
                             </div>
                             
                             <p className="text-xs text-gray-500 text-center leading-relaxed">
-                                By pressing <span className="font-bold">Pay Money</span>, this amount will be immediately deducted from the customer's wallet and the order will be marked as <span className="font-semibold text-blue-600">Out for Delivery</span>.
+                                By pressing <span className="font-bold">Pay Money</span>, this amount will be immediately deducted from the customer's wallet and the order will be marked as <span className="font-semibold text-indigo-600">Out for Delivery</span>.
                             </p>
                         </div>
 
-                        <div className="p-6 pt-0 flex gap-3 bg-gray-50/50">
-                            <button onClick={() => setPaymentOrder(null)} className="flex-1 py-3.5 text-gray-600 font-bold bg-white border border-gray-200 rounded-xl hover:bg-gray-100 hover:text-gray-900 transition-colors">
+                        <div className="p-6 pt-0 flex gap-3 bg-gray-50/80/50">
+                            <button onClick={() => setPaymentOrder(null)} className="flex-1 py-3.5 text-gray-500 font-bold bg-white border border-gray-200 rounded-lg hover:bg-accent hover:text-accent-foreground hover:text-gray-900 transition-colors">
                                 Cancel
                             </button>
-                            <button onClick={confirmPaymentAndAccept} className="flex-1 py-3.5 text-white font-bold bg-green-500 hover:bg-green-600 shadow-md shadow-green-200 rounded-xl transition-all active:scale-[0.98]">
+                            <button onClick={confirmPaymentAndAccept} className="flex-1 py-3.5 text-white font-bold bg-green-500 hover:bg-green-600 shadow-md shadow-green-200 rounded-lg transition-all active:scale-[0.98]">
                                 Pay Money 💸
                             </button>
                         </div>
@@ -994,7 +993,7 @@ const Dashboard = () => {
     if (!user) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
@@ -1007,13 +1006,13 @@ const Dashboard = () => {
             <div className="bg-gradient-to-r from-gray-900 to-gray-800 text-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center text-2xl font-black text-white shadow-xl shrink-0">
+                        <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-indigo-600 to-indigo-600 flex items-center justify-center text-2xl font-black text-white shadow-xl shrink-0">
                             {user.name?.slice(0, 1).toUpperCase()}
                         </div>
                         <div>
-                            <p className="text-gray-400 text-xs font-semibold uppercase tracking-widest">{ROLE_LABEL[user.role] ?? 'User'}</p>
+                            <p className="text-gray-500 text-xs font-semibold uppercase tracking-widest">{ROLE_LABEL[user.role] ?? 'User'}</p>
                             <h1 className="text-xl sm:text-2xl font-black">Welcome back, {user.name?.split(' ')[0]}!</h1>
-                            <p className="text-gray-400 text-xs mt-0.5">{user.email}</p>
+                            <p className="text-gray-500 text-xs mt-0.5">{user.email}</p>
                         </div>
                     </div>
                 </div>
@@ -1021,8 +1020,8 @@ const Dashboard = () => {
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {error && (
-                    <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm mb-6">
-                        <svg className="w-4 h-4 mt-0.5 shrink-0 fill-current" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clipRule="evenodd" /></svg>
+                    <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-6">
+                        <XCircle className="w-4 h-4 mt-0.5 shrink-0 fill-current" />
                         <span>{error}</span>
                     </div>
                 )}

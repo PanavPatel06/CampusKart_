@@ -1,8 +1,8 @@
 import { cn } from './cn';
 
 const variants = {
-  neutral: 'bg-gray-100 text-gray-700',
-  info: 'bg-indigo-50 text-indigo-700',
+  neutral: 'bg-gray-50/80 text-gray-900',
+  info: 'bg-indigo-600/10 text-indigo-600',
   success: 'bg-green-50 text-green-700',
   warning: 'bg-yellow-50 text-yellow-700',
   danger: 'bg-red-50 text-red-700',

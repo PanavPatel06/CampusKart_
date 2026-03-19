@@ -12,12 +12,12 @@ export default function EmptyState({
   return (
     <Card>
       <CardContent className="py-10 text-center">
-        <div className="mx-auto mb-3 h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center text-indigo-700 font-bold">
+        <div className="mx-auto mb-3 h-10 w-10 rounded-full bg-indigo-600/10 flex items-center justify-center text-indigo-600 font-bold">
           CK
         </div>
         <div className="text-lg font-semibold text-gray-900">{title}</div>
         {description ? (
-          <p className="mx-auto mt-1 max-w-md text-sm text-gray-600">
+          <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
             {description}
           </p>
         ) : null}

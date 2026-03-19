@@ -6,6 +6,7 @@ import { useState, useEffect, useContext } from 'react';
 import { io } from 'socket.io-client';
 import AuthContext from '../context/AuthContext';
 import { updateOrderStatus, getAvailableOrders, getLocations } from '../services/api';
+import { MapPin, AlertTriangle, ChevronDown, Hourglass } from 'lucide-react';
 
 // socket initialized outside component
 const socket = io('http://localhost:5001');
@@ -101,7 +102,7 @@ const DeliveryDashboard = () => {
                 <div className="max-w-2xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
                     <div>
                         <h1 className="text-white font-black text-xl">Delivery Hub</h1>
-                        <p className="text-gray-400 text-xs mt-0.5">Real-time campus delivery</p>
+                        <p className="text-gray-500 text-xs mt-0.5">Real-time campus delivery</p>
                     </div>
                     {/* Connection pill */}
                     <div className={cn(
@@ -117,25 +118,23 @@ const DeliveryDashboard = () => {
             <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
                 {/* Location selector */}
-                <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-                    <label className="block text-sm font-semibold text-gray-300 mb-3">📍 Your Delivery Zone</label>
+                <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+                    <label className="block text-sm font-semibold text-gray-500 mb-3"><MapPin className="w-5 h-5 shrink-0" /> Your Delivery Zone</label>
                     <div className="relative">
                         <select value={selectedLocation} onChange={(e) => setSelectedLocation(e.target.value)}
-                            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-400/40 focus:border-orange-400/60 transition-all appearance-none cursor-pointer">
+                            className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all appearance-none cursor-pointer">
                             <option value="All" className="text-gray-900">All</option>
                             {locations.map(loc => (
                                 <option key={loc._id} value={loc.name} className="text-gray-900">{loc.name}</option>
                             ))}
                         </select>
-                        <svg className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
+                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                     </div>
                 </div>
 
                 {!isConnected && (
-                    <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold bg-amber-400/10 px-4 py-2 rounded-xl border border-amber-400/20">
-                        ⚠️ Socket disconnected — check your network
+                    <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold bg-amber-400/10 px-4 py-2 rounded-lg border border-amber-400/20">
+                        <AlertTriangle className="w-5 h-5 shrink-0" /> Socket disconnected — check your network
                     </div>
                 )}
 
@@ -144,44 +143,44 @@ const DeliveryDashboard = () => {
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-white font-bold">Available Orders</h2>
                         {availableOrders.length > 0 && (
-                            <span className="bg-orange-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">
+                            <span className="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">
                                 {availableOrders.length} new
                             </span>
                         )}
                     </div>
 
                     {availableOrders.length === 0 ? (
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-10 text-center">
-                            <div className="text-4xl mb-3">⏳</div>
-                            <p className="text-gray-300 font-semibold text-sm">No orders in {selectedLocation === 'All' ? 'any zone' : selectedLocation}</p>
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center">
+                            <div className="text-4xl mb-3"><Hourglass className="w-5 h-5 shrink-0" /></div>
+                            <p className="text-gray-500 font-semibold text-sm">No orders in {selectedLocation === 'All' ? 'any zone' : selectedLocation}</p>
                             <p className="text-gray-500 text-xs mt-1">New orders will appear here in real time</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
                             {availableOrders.map(order => (
-                                <div key={order._id} className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                                <div key={order._id} className="bg-white rounded-xl shadow-lg overflow-hidden">
                                     <div className="p-5">
                                         <div className="flex items-start justify-between gap-3 mb-4">
                                             <div>
                                                 <div className="flex items-center gap-2 mb-1">
-                                                    <span className="text-orange-500 font-black text-sm">New Request!</span>
+                                                    <span className="text-indigo-600 font-black text-sm">New Request!</span>
                                                     <span className="bg-amber-100 text-amber-700 text-xs font-semibold px-2 py-0.5 rounded-full">Pending</span>
                                                 </div>
-                                                <p className="text-xs font-mono text-gray-400">#{order._id.slice(-6).toUpperCase()}</p>
+                                                <p className="text-xs font-mono text-gray-500">#{order._id.slice(-6).toUpperCase()}</p>
                                             </div>
                                             <span className="text-2xl font-black text-gray-900">₹{order.totalAmount}</span>
                                         </div>
 
-                                        <div className="bg-gray-50 rounded-xl p-3 mb-4">
+                                        <div className="bg-gray-50/80 rounded-lg p-3 mb-4">
                                             <p className="text-xs font-semibold text-gray-500 mb-1 uppercase tracking-wide">Pickup From</p>
                                             <p className="font-bold text-gray-900 text-sm">{order.vendor?.storeName || 'Vendor'}</p>
                                             <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                                                <span>📍</span>{order.vendor?.location || 'Unknown'}
+                                                <span><MapPin className="w-5 h-5 shrink-0" /></span>{order.vendor?.location || 'Unknown'}
                                             </p>
                                         </div>
 
                                         <button onClick={() => handleAcceptOrder(order._id)}
-                                            className="w-full py-3 bg-orange-500 hover:bg-orange-600 active:scale-[0.98] text-white font-bold rounded-xl transition-all shadow-md shadow-orange-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400">
+                                            className="w-full py-3 bg-indigo-600 text-white hover:bg-indigo-600 text-white active:scale-[0.98] text-white font-bold rounded-lg transition-all shadow-md shadow-indigo-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600">
                                             Request Delivery →
                                         </button>
                                     </div>
@@ -195,9 +194,9 @@ const DeliveryDashboard = () => {
                 <div className="grid grid-cols-2 gap-3">
                     {[
                         { label: 'Zone',     value: selectedLocation || 'None',       color: 'text-white' },
-                        { label: 'Pending',  value: availableOrders.length,           color: availableOrders.length > 0 ? 'text-orange-400' : 'text-gray-400' },
+                        { label: 'Pending',  value: availableOrders.length,           color: availableOrders.length > 0 ? 'text-indigo-600' : 'text-gray-500' },
                     ].map(s => (
-                        <div key={s.label} className="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+                        <div key={s.label} className="bg-white/5 border border-white/10 rounded-lg p-3 text-center">
                             <p className={cn('font-black text-lg leading-tight truncate', s.color)}>{s.value}</p>
                             <p className="text-gray-500 text-[10px] font-semibold uppercase tracking-wide mt-0.5">{s.label}</p>
                         </div>
