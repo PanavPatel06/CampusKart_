@@ -7,7 +7,7 @@ import CartContext from '../context/CartContext';
 import AuthContext from '../context/AuthContext';
 import { createOrder, getLocations, getMyWallet } from '../services/api';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, ChevronDown, MapPin } from 'lucide-react';
+import { ShoppingBag, ChevronDown, MapPin, Trash2, ArrowRight, ShieldCheck, CreditCard } from 'lucide-react';
 
 const Cart = () => {
     // ← identical state/logic to original

@@ -4,7 +4,7 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
-import { Eye, Mail, EyeOff, XCircle, ShoppingBag, Lock } from 'lucide-react';
+import { Eye, Mail, EyeOff, LogIn, AlertCircle, ShoppingBag, Lock } from 'lucide-react';
 
 const Login = () => {
     // ← identical state/logic to original
@@ -58,7 +58,7 @@ const Login = () => {
                     {/* Error */}
                     {error && (
                         <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-5" role="alert">
-                            <XCircle className="w-4 h-4 mt-0.5 shrink-0 fill-current" />
+                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
                             <span>{error}</span>
                         </div>
                     )}

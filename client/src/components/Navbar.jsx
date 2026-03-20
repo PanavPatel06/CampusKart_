@@ -5,7 +5,7 @@ import { useContext, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
 import CartContext from '../context/CartContext';
-import { LogOut, ChevronDown, ShoppingCart, ShoppingBag, BarChart2, Bike } from 'lucide-react';
+import { LogOut, ChevronDown, ShoppingCart, ShoppingBag, LayoutDashboard, Truck, UserCircle, PackageSearch } from 'lucide-react';
 
 const ROLE_PILL = {
     admin:  'bg-purple-100 text-purple-700',
@@ -27,7 +27,7 @@ function ProfileDropdown({ user, onLogout, showCart, showDelivery }) {
                 aria-expanded={open}
                 aria-haspopup="true"
             >
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                     {initials}
                 </div>
                 <div className="flex flex-col items-start leading-tight">
@@ -36,7 +36,7 @@ function ProfileDropdown({ user, onLogout, showCart, showDelivery }) {
                         {user.role}
                     </span>
                 </div>
-                <ChevronDown className="" />
+                <ChevronDown className="w-4 h-4 text-gray-400" />
             </button>
 
             {open && (
@@ -49,10 +49,10 @@ function ProfileDropdown({ user, onLogout, showCart, showDelivery }) {
                         </div>
                         <div className="py-1">
                             {[
-                                { to: '/dashboard', icon: <BarChart2 className="w-5 h-5 shrink-0" />, label: 'Dashboard' },
-                                ...(user.role !== 'agent' ? [{ to: '/products',  icon: <ShoppingBag className="w-5 h-5 shrink-0" />, label: 'Browse Products' }] : []),
-                                ...(showCart ? [{ to: '/cart', icon: <ShoppingCart className="w-5 h-5 shrink-0" />, label: 'Cart' }] : []),
-                                ...(showDelivery ? [{ to: '/delivery', icon: <Bike className="w-5 h-5 shrink-0" />, label: 'Delivery Hub' }] : []),
+                                { to: '/dashboard', icon: <LayoutDashboard className="w-4 h-4" />, label: 'Dashboard' },
+                                ...(user.role !== 'agent' ? [{ to: '/products',  icon: <PackageSearch className="w-4 h-4" />, label: 'Browse Products' }] : []),
+                                ...(showCart ? [{ to: '/cart', icon: <ShoppingCart className="w-4 h-4" />, label: 'Cart' }] : []),
+                                ...(showDelivery ? [{ to: '/delivery', icon: <Truck className="w-4 h-4" />, label: 'Delivery Hub' }] : []),
                             ].map(item => (
                                 <Link key={item.to} to={item.to} onClick={() => setOpen(false)}
                                     className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-900 hover:bg-gray-50/80 transition-colors font-medium">

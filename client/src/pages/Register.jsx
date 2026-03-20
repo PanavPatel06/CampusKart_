@@ -4,12 +4,12 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import AuthContext from '../context/AuthContext';
-import { MapPin, Lock, Mail, GraduationCap, User, Eye, Bike, Store, EyeOff, ShoppingBag, XCircle } from 'lucide-react';
+import { MapPin, Lock, Mail, UserPlus, User, Eye, Truck, Store, EyeOff, ShoppingBag, AlertCircle, ChevronDown } from 'lucide-react';
 
 const ROLES = [
-    { value: 'user',   label: 'Student',        icon: <GraduationCap className="w-5 h-5 shrink-0" />, desc: 'Shop on campus' },
+    { value: 'user',   label: 'Student',        icon: <User className="w-5 h-5 shrink-0" />, desc: 'Shop on campus' },
     { value: 'vendor', label: 'Vendor',          icon: <Store className="w-5 h-5 shrink-0" />, desc: 'Sell products' },
-    { value: 'agent',  label: 'Delivery Agent',  icon: <Bike className="w-5 h-5 shrink-0" />, desc: 'Deliver orders' },
+    { value: 'agent',  label: 'Delivery Agent',  icon: <Truck className="w-5 h-5 shrink-0" />, desc: 'Deliver orders' },
 ];
 
 const Register = () => {
@@ -74,7 +74,7 @@ const Register = () => {
 
                     {error && (
                         <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-5" role="alert">
-                            <XCircle className="w-4 h-4 mt-0.5 shrink-0 fill-current" />
+                            <AlertCircle className="w-5 h-5 flex-shrink-0" />
                             <span>{error}</span>
                         </div>
                     )}

@@ -6,7 +6,7 @@ import { useState, useEffect, useContext } from 'react';
 import { io } from 'socket.io-client';
 import AuthContext from '../context/AuthContext';
 import { updateOrderStatus, getAvailableOrders, getLocations } from '../services/api';
-import { MapPin, AlertTriangle, ChevronDown, Hourglass } from 'lucide-react';
+import { MapPin, User, Navigation, CheckCircle2, Package, Signal, SignalZero, BellRing, ChevronDown } from 'lucide-react';
 
 // socket initialized outside component
 const socket = io('http://localhost:5001');

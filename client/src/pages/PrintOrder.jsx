@@ -5,7 +5,7 @@ import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadFile, createOrder, getVendors, getLocations, getMyWallet } from '../services/api';
 import AuthContext from '../context/AuthContext';
-import { CheckCircle, ChevronDown } from 'lucide-react';
+import { Printer, UploadCloud, FileText, CheckCircle2, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
 
 function cn(...c) { return c.filter(Boolean).join(' '); }
 
@@ -100,7 +100,7 @@ const PrintOrder = () => {
         return (
             <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center px-4">
                 <div className="text-center space-y-4 max-w-sm">
-                    <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center text-4xl mx-auto"><CheckCircle className="w-5 h-5 shrink-0" /></div>
+                    <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center text-4xl mx-auto"><CheckCircle2 className="w-5 h-5 shrink-0" /></div>
                     <h2 className="text-2xl font-black text-gray-900">Order Placed!</h2>
                     <p className="text-gray-500 text-sm">Your print order was submitted successfully. Redirecting to dashboard…</p>
                     <div className="w-6 h-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin mx-auto" />
@@ -144,7 +144,7 @@ const PrintOrder = () => {
                             fileUrl ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50/80 hover:border-indigo-600 hover:bg-indigo-600/10'
                         )}>
                             <input type="file" accept="application/pdf" onChange={handleFileChange} className="sr-only" />
-                            <span className="text-4xl">{fileUrl ? '<CheckCircle className="w-5 h-5 shrink-0" />' : '📄'}</span>
+                            <span className="text-4xl">{fileUrl ? '<CheckCircle2 className="w-5 h-5 shrink-0" />' : '📄'}</span>
                             <div className="text-center">
                                 <p className="font-semibold text-sm text-gray-900">{fileUrl ? file?.name : (file ? file.name : 'Click to select PDF')}</p>
                                 <p className="text-xs text-gray-500 mt-0.5">{fileUrl ? 'Uploaded & ready' : 'PDF only, max 100MB'}</p>

@@ -3,7 +3,7 @@ import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { addProduct, updateProduct, uploadImage } from '../services/api';
 import ReactCrop from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
-import { XCircle, Image, ShoppingBag } from 'lucide-react';
+import { Plus, AlertCircle, Package, Image, ShoppingBag } from 'lucide-react';
 
 async function getCroppedImg(image, crop, fileName) {
     const canvas = document.createElement('canvas');
@@ -146,7 +146,7 @@ const AddProduct = () => {
                 {/* Header */}
                 <div className="text-center mb-8">
                     <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br from-green-400 to-green-600 shadow-xl shadow-green-200 mb-4">
-                        <ShoppingBag className="w-7 h-7 text-white" />
+                        <Package className="w-7 h-7 text-white" />
                     </div>
                     <h1 className="text-2xl font-black text-gray-900">{productToEdit ? 'Edit Product' : 'Add New Product'}</h1>
                     <p className="text-gray-500 text-sm mt-1">{productToEdit ? 'Update details of your existing product' : 'List a product on the campus marketplace'}</p>
@@ -156,7 +156,7 @@ const AddProduct = () => {
                 <div className="bg-white rounded-3xl border border-gray-200 shadow-xl p-8 space-y-5">
                     {error && (
                         <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm" role="alert">
-                            <XCircle className="w-4 h-4 mt-0.5 shrink-0 fill-current" />
+                            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 fill-current" />
                             <span>{error}</span>
                         </div>
                     )}

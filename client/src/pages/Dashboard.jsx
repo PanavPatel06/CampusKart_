@@ -17,7 +17,7 @@ import {
 } from 'recharts';
 import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { BarChart as LucideBarChart, ShoppingBag, Search, AlertTriangle, Wallet, XCircle, ShieldCheck, MapPin, Inbox, TrendingUp, CheckCircle, Settings, Hourglass, Printer, Package, Bike } from 'lucide-react';
+import { BarChart as LucideBarChart, ShoppingBag, Search, AlertCircle, Wallet, PackageSearch, ShieldCheck, MapPin, Package, TrendingUp, CheckCircle2, Settings, Hourglass, Printer, Truck, UserCircle } from 'lucide-react';
 
 const socket = io('http://localhost:5000');
 
@@ -53,20 +53,26 @@ function StatusBadge({ status }) {
 }
 
 function StatCard({ label, value, icon, accent }) {
-    const colors = {
-        orange: 'from-indigo-600 to-indigo-600 shadow-indigo-500/20',
-        green:  'from-green-400 to-green-600 shadow-green-200',
-        blue:   'from-blue-400 to-blue-600 shadow-indigo-200',
-        purple: 'from-purple-400 to-purple-600 shadow-purple-200',
+    const bg = {
+        orange: 'bg-indigo-50 border-indigo-100',
+        green:  'bg-emerald-50 border-emerald-100',
+        blue:   'bg-blue-50 border-blue-100',
+        purple: 'bg-purple-50 border-purple-100',
+    };
+    const iconColor = {
+        orange: 'text-indigo-600',
+        green:  'text-emerald-600',
+        blue:   'text-blue-600',
+        purple: 'text-purple-600',
     };
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
-            <div className={cn('w-12 h-12 rounded-lg bg-gradient-to-br flex items-center justify-center text-xl text-white shadow-md shrink-0', colors[accent || 'orange'])}>
-                {icon}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4 hover:shadow-md transition-all">
+            <div className={cn('w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border', bg[accent || 'orange'])}>
+                <span className={iconColor[accent || 'orange']}>{icon}</span>
             </div>
             <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
-                <p className="text-2xl font-black text-gray-900 leading-tight">{value}</p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">{label}</p>
+                <p className="text-2xl font-black text-gray-900 leading-tight tracking-tight">{value}</p>
             </div>
         </div>
     );
@@ -87,7 +93,7 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate, handleClea
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <StatCard label="Wallet Balance" value={`₹${userWalletBalance ?? 0}`} icon={<Wallet className="w-5 h-5 shrink-0" />} accent="green" />
                 <StatCard label="Total Orders"   value={orders.length}                                   icon={<Package className="w-5 h-5 shrink-0" />} accent="orange" />
-                <StatCard label="Delivered"       value={orders.filter(o => o.status === 'delivered').length} icon={<CheckCircle className="w-5 h-5 shrink-0" />} accent="blue" />
+                <StatCard label="Delivered"       value={orders.filter(o => o.status === 'delivered').length} icon={<CheckCircle2 className="w-5 h-5 shrink-0" />} accent="blue" />
             </div>
 
             <Card>
@@ -111,7 +117,7 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate, handleClea
                 </div>
                 {orders.length === 0 ? (
                     <div className="text-center py-10">
-                        <div className="text-4xl mb-3 opacity-40"><Inbox className="w-10 h-10 shrink-0" /></div>
+                        <div className="text-4xl mb-3 opacity-40"><PackageSearch className="w-10 h-10 shrink-0" /></div>
                         <p className="text-gray-500 font-medium text-sm">No orders yet</p>
                         <a href="/products" className="text-sm font-semibold text-indigo-600 hover:underline mt-2 inline-block">Browse Products →</a>
                     </div>
@@ -171,7 +177,7 @@ function VendorSection({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <StatCard label="Total Orders"  value={orders.length} icon={<Package className="w-5 h-5 shrink-0" />} accent="orange" />
                 <StatCard label="Pending"        value={orders.filter(o => o.status === 'pending').length} icon={<Hourglass className="w-5 h-5 shrink-0" />} accent="blue" />
-                <StatCard label="Delivered"      value={orders.filter(o => o.status === 'delivered').length} icon={<CheckCircle className="w-5 h-5 shrink-0" />} accent="green" />
+                <StatCard label="Delivered"      value={orders.filter(o => o.status === 'delivered').length} icon={<CheckCircle2 className="w-5 h-5 shrink-0" />} accent="green" />
             </div>
 
             <Card>
@@ -251,7 +257,7 @@ function VendorSection({
                 <SectionTitle>Incoming Orders</SectionTitle>
                 {orders.length === 0 ? (
                     <div className="text-center py-10">
-                        <div className="text-4xl mb-3 opacity-40"><Inbox className="w-10 h-10 shrink-0" /></div>
+                        <div className="text-4xl mb-3 opacity-40"><PackageSearch className="w-10 h-10 shrink-0" /></div>
                         <p className="text-gray-500 text-sm font-medium">No orders yet</p>
                     </div>
                 ) : (
@@ -314,7 +320,7 @@ function VendorSection({
                                         <p className="text-xs text-red-500 font-semibold py-2">❌ Order rejected</p>
                                     )}
                                     {order.status === 'out_for_delivery' && (
-                                        <p className="text-xs text-indigo-600 font-semibold py-2"><Bike className="w-5 h-5 shrink-0" /> Out for delivery</p>
+                                        <p className="text-xs text-indigo-600 font-semibold py-2"><Truck className="w-5 h-5 shrink-0" /> Out for delivery</p>
                                     )}
                                 </div>
                             </div>
@@ -422,7 +428,7 @@ function AdminSection({
         <div className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <StatCard label="Total Orders"  value={orders.length} icon={<Package className="w-5 h-5 shrink-0" />} accent="orange" />
-                <StatCard label="Delivered"      value={orders.filter(o => o.status === 'delivered').length} icon={<CheckCircle className="w-5 h-5 shrink-0" />} accent="green" />
+                <StatCard label="Delivered"      value={orders.filter(o => o.status === 'delivered').length} icon={<CheckCircle2 className="w-5 h-5 shrink-0" />} accent="green" />
                 <StatCard label="Net Revenue"        value={systemEarnings ? `₹${systemEarnings.totalCompanyEarnings?.toFixed(0)}` : '—'} icon={<BarChart className="w-5 h-5 shrink-0" />} accent="blue" />
                 <StatCard label="Total Sales"      value={systemEarnings ? `₹${systemEarnings.totalSales?.toFixed(0)}` : '—'} icon={<Wallet className="w-5 h-5 shrink-0" />} accent="purple" />
             </div>
@@ -709,7 +715,7 @@ function AdminSection({
                 <div className="space-y-6">
                     <Card className="border-red-100 bg-red-50/20">
                         <div className="flex items-center gap-3 mb-4">
-                            <span className="text-2xl"><AlertTriangle className="w-5 h-5 shrink-0" /></span>
+                            <span className="text-2xl"><AlertCircle className="w-5 h-5 shrink-0" /></span>
                             <div>
                                 <h3 className="font-bold text-red-700">Danger Zone</h3>
                                 <p className="text-xs text-red-600/70 font-medium">Sensitive system-wide actions</p>
@@ -753,15 +759,15 @@ function AgentSection({ deliveries, handleStatusUpdate, user }) {
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <StatCard label="Assigned"  value={deliveries.length} icon={<Bike className="w-5 h-5 shrink-0" />} accent="orange" />
+                <StatCard label="Assigned"  value={deliveries.length} icon={<Truck className="w-5 h-5 shrink-0" />} accent="orange" />
                 <StatCard label="Active"    value={deliveries.filter(d => d.status === 'out_for_delivery').length} icon={<MapPin className="w-5 h-5 shrink-0" />} accent="blue" />
-                <StatCard label="Delivered" value={deliveries.filter(d => d.status === 'delivered').length} icon={<CheckCircle className="w-5 h-5 shrink-0" />} accent="green" />
+                <StatCard label="Delivered" value={deliveries.filter(d => d.status === 'delivered').length} icon={<CheckCircle2 className="w-5 h-5 shrink-0" />} accent="green" />
             </div>
             <Card>
                 <SectionTitle>My Deliveries</SectionTitle>
                 {deliveries.length === 0 ? (
                     <div className="text-center py-10">
-                        <div className="text-4xl mb-3 opacity-40"><Bike className="w-5 h-5 shrink-0" /></div>
+                        <div className="text-4xl mb-3 opacity-40"><Truck className="w-5 h-5 shrink-0" /></div>
                         <p className="text-gray-500 text-sm font-medium">No deliveries assigned</p>
                     </div>
                 ) : (
@@ -780,7 +786,7 @@ function AgentSection({ deliveries, handleStatusUpdate, user }) {
                                     <div className="flex gap-2 border-t border-gray-200 pt-3">
                                         <button onClick={() => handleAcceptDelivery(order)}
                                             className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors w-full">
-                                            Accept Delivery <Bike className="w-5 h-5 shrink-0" />
+                                            Accept Delivery <Truck className="w-5 h-5 shrink-0" />
                                         </button>
                                     </div>
                                 )}
@@ -1021,7 +1027,7 @@ const Dashboard = () => {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {error && (
                     <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm mb-6">
-                        <XCircle className="w-4 h-4 mt-0.5 shrink-0 fill-current" />
+                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 fill-current" />
                         <span>{error}</span>
                     </div>
                 )}

@@ -6,7 +6,7 @@ import { getAllProducts } from '../services/api';
 import { Link } from 'react-router-dom';
 import CartContext from '../context/CartContext';
 import AuthContext from '../context/AuthContext';
-import { Search, ShoppingBag } from 'lucide-react';
+import { Search, ShoppingCart, PackageSearch, ShoppingBag, ImageIcon, Sparkles } from 'lucide-react';
 
 // ─── Skeleton card ─────────────────────────────────────────────────────────
 function SkeletonCard() {
@@ -36,7 +36,7 @@ function ProductCard({ product, onAddToCart, justAdded, userRole }) {
                     <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 ) : (
                     <div className="absolute inset-0 flex items-center justify-center text-5xl opacity-25 group-hover:scale-110 transition-transform duration-500 select-none">
-                        <ShoppingBag className="w-5 h-5 shrink-0" />
+                        <PackageSearch className="w-8 h-8 text-gray-300" />
                     </div>
                 )}
             </div>
@@ -151,7 +151,7 @@ const ProductList = () => {
                     </div>
                 ) : filtered.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-20 text-center">
-                        <div className="text-5xl mb-4 opacity-40"><ShoppingBag className="w-5 h-5 shrink-0" /></div>
+                        <div className="text-5xl mb-4 opacity-40"><PackageSearch className="w-8 h-8 text-gray-300" /></div>
                         <h3 className="text-lg font-bold text-gray-900 mb-2">
                             {search ? `No results for "${search}"` : 'No products yet'}
                         </h3>
