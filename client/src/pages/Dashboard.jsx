@@ -87,7 +87,19 @@ function SectionTitle({ children }) {
 }
 
 // ─── USER SECTION ─────────────────────────────────────────────────────────
-function UserSection({ orders, userWalletBalance, handleStatusUpdate, handleClearHistory }) {
+function UserSection({ orders, deliveries, userWalletBalance, handleStatusUpdate, handleClearHistory }) {
+    const [otpInputs, setOtpInputs] = useState({});
+    const [paymentOrder, setPaymentOrder] = useState(null);
+
+    const handleAcceptDelivery = (order) => {
+        setPaymentOrder(order);
+    };
+
+    const confirmPaymentAndAccept = () => {
+        if (!paymentOrder) return;
+        handleStatusUpdate(paymentOrder._id, 'out_for_delivery');
+        setPaymentOrder(null);
+    };
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -161,6 +173,90 @@ function UserSection({ orders, userWalletBalance, handleStatusUpdate, handleClea
                     </div>
                 )}
             </Card>
+
+            {/* ── My Deliveries (user acting as agent) ── */}
+            {deliveries && deliveries.length > 0 && (
+                <Card>
+                    <SectionTitle>My Deliveries</SectionTitle>
+                    <div className="space-y-3">
+                        {deliveries.map(order => (
+                            <div key={order._id} className="flex flex-col gap-3 p-4 rounded-lg border border-gray-200 bg-gray-50/80 hover:bg-gray-100 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-mono text-gray-500">#{order._id.slice(-6).toUpperCase()}</p>
+                                        <p className="font-bold text-gray-900 text-sm">₹{order.totalAmount}</p>
+                                        <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                        {order.deliveryLocation && (
+                                            <p className="text-xs text-gray-500 flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" />{order.deliveryLocation}</p>
+                                        )}
+                                    </div>
+                                    <StatusBadge status={order.status} />
+                                </div>
+                                {order.status === 'accepted' && (
+                                    <div className="flex gap-2 border-t border-gray-200 pt-3">
+                                        <button onClick={() => handleAcceptDelivery(order)}
+                                            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors w-full flex items-center justify-center gap-2">
+                                            Accept Delivery <Truck className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                )}
+                                {order.status === 'out_for_delivery' && (
+                                    <div className="flex gap-2 border-t border-gray-200 pt-3">
+                                        <input type="text" placeholder="Enter OTP from customer"
+                                            value={otpInputs[order._id] || ''}
+                                            onChange={e => setOtpInputs(prev => ({ ...prev, [order._id]: e.target.value }))}
+                                            className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-indigo-600"
+                                        />
+                                        <button onClick={() => {
+                                            const otp = otpInputs[order._id]?.trim();
+                                            if (!otp || otp.length !== 4) {
+                                                alert('Please enter the 4-digit OTP from the customer.');
+                                                return;
+                                            }
+                                            handleStatusUpdate(order._id, 'delivered', otp);
+                                        }}
+                                            className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-lg transition-colors shrink-0">
+                                            Mark Delivered ✓
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </Card>
+            )}
+
+            {/* Payment Modal */}
+            {paymentOrder && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-white text-center shadow-inner">
+                            <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3 backdrop-blur-md">
+                                <span className="text-3xl">💳</span>
+                            </div>
+                            <h3 className="text-xl font-black">Payment Required</h3>
+                            <p className="text-blue-50 text-sm mt-1 opacity-90">Confirm payment to accept this delivery.</p>
+                        </div>
+                        <div className="p-6 space-y-4 bg-gray-50">
+                            <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm text-center">
+                                <p className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-1">Total Bill</p>
+                                <p className="text-4xl font-black text-gray-900 tracking-tight">₹{paymentOrder.totalAmount}</p>
+                            </div>
+                            <p className="text-xs text-gray-500 text-center leading-relaxed">
+                                By pressing <span className="font-bold">Pay Money</span>, this amount will be immediately deducted from the customer's wallet and the order will be marked as <span className="font-semibold text-indigo-600">Out for Delivery</span>.
+                            </p>
+                        </div>
+                        <div className="p-6 pt-0 flex gap-3 bg-gray-50">
+                            <button onClick={() => setPaymentOrder(null)} className="flex-1 py-3.5 text-gray-500 font-bold bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-colors">
+                                Cancel
+                            </button>
+                            <button onClick={confirmPaymentAndAccept} className="flex-1 py-3.5 text-white font-bold bg-green-500 hover:bg-green-600 shadow-md shadow-green-200 rounded-lg transition-all active:scale-[0.98]">
+                                Pay Money 💸
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -797,7 +893,14 @@ function AgentSection({ deliveries, handleStatusUpdate, user }) {
                                             onChange={e => setOtpInputs(prev => ({ ...prev, [order._id]: e.target.value }))}
                                             className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-indigo-600"
                                         />
-                                        <button onClick={() => handleStatusUpdate(order._id, 'delivered', otpInputs[order._id])}
+                                        <button onClick={() => {
+                                            const otp = otpInputs[order._id]?.trim();
+                                            if (!otp || otp.length !== 4) {
+                                                alert('Please enter the 4-digit OTP from the customer.');
+                                                return;
+                                            }
+                                            handleStatusUpdate(order._id, 'delivered', otp);
+                                        }}
                                             className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-bold rounded-lg transition-colors shrink-0">
                                             Mark Delivered ✓
                                         </button>
@@ -1032,7 +1135,7 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                {user.role === 'user'   && <UserSection   orders={orders} userWalletBalance={userWalletBalance} handleStatusUpdate={handleStatusUpdate} handleClearHistory={handleClearHistory} />}
+                {user.role === 'user'   && <UserSection   orders={orders} deliveries={deliveries} userWalletBalance={userWalletBalance} handleStatusUpdate={handleStatusUpdate} handleClearHistory={handleClearHistory} />}
                 {user.role === 'vendor' && <VendorSection orders={orders} handleStatusUpdate={handleStatusUpdate} products={vendorProducts} handleDeleteProduct={handleDeleteProduct} locations={locations} fetchLocations={fetchLocations} />}
                 {user.role === 'admin'  && (
                     <AdminSection
