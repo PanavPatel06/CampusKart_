@@ -151,7 +151,7 @@ const DeliveryDashboard = () => {
 
                     {availableOrders.length === 0 ? (
                         <div className="bg-white/5 border border-white/10 rounded-xl p-10 text-center">
-                            <div className="text-4xl mb-3"><Hourglass className="w-5 h-5 shrink-0" /></div>
+                            <div className="flex justify-center text-4xl mb-3"><Hourglass className="w-5 h-5 shrink-0" /></div>
                             <p className="text-gray-500 font-semibold text-sm">No orders in {selectedLocation === 'All' ? 'any zone' : selectedLocation}</p>
                             <p className="text-gray-500 text-xs mt-1">New orders will appear here in real time</p>
                         </div>
