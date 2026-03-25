@@ -18,6 +18,7 @@ const PrintOrder = () => {
     const [fileUrl,       setFileUrl]       = useState('');
     const [uploading,     setUploading]     = useState(false);
     const [orderSuccess,  setOrderSuccess]  = useState(false);
+    const [blobUrl,       setBlobUrl]       = useState(null); // Local blob state for secure inline PDF bypassing
     const [vendors,       setVendors]       = useState([]);
     const [vendorId,      setVendorId]      = useState('');
     const [locations,     setLocations]     = useState([]);
@@ -39,7 +40,36 @@ const PrintOrder = () => {
         fetchData();
     }, [user]);
 
-    const handleFileChange = (e) => { setFile(e.target.files[0]); };
+    // Securely pull the PDF directly into browser memory to strip forced Cloudinary attachment headers!
+    useEffect(() => {
+        if (!fileUrl) {
+            setBlobUrl(null);
+            return;
+        }
+        const ext = file?.name?.split('.').pop().toLowerCase() || 'pdf';
+        if (ext === 'pdf') {
+            fetch(fileUrl)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Cloudinary returned HTTP ${res.status}`);
+                    return res.arrayBuffer(); // Extract raw binary explicitly
+                })
+                .then(buffer => {
+                    // Reconstruct a pristine PDF blob from absolute scratch
+                    const pristineBlob = new Blob([buffer], { type: 'application/pdf' });
+                    setBlobUrl(URL.createObjectURL(pristineBlob));
+                })
+                .catch(err => {
+                    console.error("Blob proxy failed:", err);
+                    setBlobUrl('error');
+                });
+        }
+    }, [fileUrl, file]);
+
+    const handleFileChange = (e) => { 
+        setFile(e.target.files[0]);
+        setFileUrl('');
+        setBlobUrl(null);
+    };
 
     const handleUpload = async () => {
         if (!file) return;
@@ -156,12 +186,32 @@ const PrintOrder = () => {
                                     <span className="text-xs font-semibold text-gray-500">Document Preview</span>
                                     <div className="flex gap-4">
                                         <a href={fileUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1">Open Fullscreen</a>
-                                        <button type="button" onClick={() => { setFile(null); setFileUrl(''); }} className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1">Remove File <XCircle className="w-3 h-3" /></button>
+                                        <button type="button" onClick={() => { setFile(null); setFileUrl(''); setBlobUrl(null); }} className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1">Remove File <XCircle className="w-3 h-3" /></button>
                                     </div>
                                 </div>
-                                <object data={`${fileUrl}#view=FitH`} type="application/pdf" className="w-full h-96">
-                                    <iframe src={`https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`} className="w-full h-96 border-0" title="Document Preview" />
-                                </object>
+                                {(() => {
+                                    const ext = file?.name?.split('.').pop().toLowerCase() || 'pdf';
+                                    const guaranteedUrl = fileUrl.toLowerCase().endsWith(`.${ext}`) ? fileUrl : `${fileUrl}.${ext}`;
+                                    
+                                    if (ext === 'pdf') {
+                                        return blobUrl === 'error' ? (
+                                            <div className="w-full h-96 flex flex-col items-center justify-center bg-gray-50/80">
+                                                <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
+                                                <p className="text-red-600 text-sm font-bold">Network Proxy Failed</p>
+                                                <p className="text-gray-500 text-xs">The PDF could not be securely fetched from Cloudinary.</p>
+                                            </div>
+                                        ) : blobUrl ? (
+                                            <iframe src={`${blobUrl}#view=FitH`} className="w-full h-96 border-0" title="PDF Preview" />
+                                        ) : (
+                                            <div className="w-full h-96 flex flex-col items-center justify-center bg-gray-50">
+                                                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                                <p className="text-gray-500 text-sm font-semibold">Generating secure preview…</p>
+                                            </div>
+                                        );
+                                    } else {
+                                        return <iframe src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(guaranteedUrl)}`} className="w-full h-96 border-0" title="Document Preview" />;
+                                    }
+                                })()}
                             </div>
                         )}
                         {file && !fileUrl && (

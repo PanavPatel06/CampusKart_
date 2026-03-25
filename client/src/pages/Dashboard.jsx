@@ -614,7 +614,7 @@ function AdminSection({
                                     </div>
                                 ) : analyticsData.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={analyticsData}>
+                                        <LineChart data={analyticsData}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                                             <XAxis dataKey="_id" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
                                             <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
@@ -622,12 +622,8 @@ function AdminSection({
                                                 contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
                                                 cursor={{ fill: 'transparent' }}
                                             />
-                                            <Bar dataKey="revenue" radius={[6, 6, 0, 0]}>
-                                                {analyticsData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#f97316' : '#fdba74'} />
-                                                ))}
-                                            </Bar>
-                                        </BarChart>
+                                            <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                                        </LineChart>
                                     </ResponsiveContainer>
                                 ) : (
                                     <div className="h-full flex items-center justify-center text-gray-500 text-sm font-medium">
@@ -658,15 +654,23 @@ function AdminSection({
                         <div className="flex flex-wrap gap-5 items-end">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Company %</label>
-                                <input type="number" value={commissionRates.companyRate}
-                                    onChange={(e) => setCommissionRates({ ...commissionRates, companyRate: Number(e.target.value) })}
+                                <input type="number" min="0" max="100" value={commissionRates.companyRate}
+                                    onChange={(e) => {
+                                        let val = Number(e.target.value);
+                                        if (val > 100) val = 100;
+                                        setCommissionRates({ ...commissionRates, companyRate: val });
+                                    }}
                                     className="w-24 px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                                 />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Delivery %</label>
-                                <input type="number" value={commissionRates.deliveryRate}
-                                    onChange={(e) => setCommissionRates({ ...commissionRates, deliveryRate: Number(e.target.value) })}
+                                <input type="number" min="0" max="100" value={commissionRates.deliveryRate}
+                                    onChange={(e) => {
+                                        let val = Number(e.target.value);
+                                        if (val > 100) val = 100;
+                                        setCommissionRates({ ...commissionRates, deliveryRate: val });
+                                    }}
                                     className="w-24 px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                                 />
                             </div>
@@ -717,7 +721,11 @@ function AdminSection({
                             <p className="text-sm font-semibold text-blue-800 mb-3">Adding funds to: {selectedUser.name}</p>
                             <div className="flex gap-2">
                                 <input type="number" placeholder="Amount (₹)" value={fundAmount}
-                                    onChange={(e) => setFundAmount(e.target.value)}
+                                    onChange={(e) => {
+                                        let val = Number(e.target.value);
+                                        if (val > 10000000) val = 10000000;
+                                        setFundAmount(val);
+                                    }}
                                     className="flex-1 px-4 py-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/25 focus:border-blue-400"
                                 />
                                 <button onClick={handleAddFunds}
@@ -852,9 +860,12 @@ function AgentSection({ deliveries, handleStatusUpdate, user }) {
         setPaymentOrder(null);
     };
 
+    const agentEarnings = deliveries.filter(d => d.status === 'delivered').reduce((sum, d) => sum + (d.commission?.delivery || 0), 0);
+
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <StatCard label="Earnings"  value={`₹${agentEarnings.toFixed(2)}`} icon={<Wallet className="w-5 h-5 shrink-0" />} accent="green" />
                 <StatCard label="Assigned"  value={deliveries.length} icon={<Truck className="w-5 h-5 shrink-0" />} accent="orange" />
                 <StatCard label="Active"    value={deliveries.filter(d => d.status === 'out_for_delivery').length} icon={<MapPin className="w-5 h-5 shrink-0" />} accent="blue" />
                 <StatCard label="Delivered" value={deliveries.filter(d => d.status === 'delivered').length} icon={<CheckCircle2 className="w-5 h-5 shrink-0" />} accent="green" />
