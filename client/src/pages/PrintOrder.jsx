@@ -5,7 +5,7 @@ import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadFile, createOrder, getVendors, getLocations, getMyWallet } from '../services/api';
 import AuthContext from '../context/AuthContext';
-import { Printer, UploadCloud, FileText, CheckCircle2, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
+import { Printer, UploadCloud, FileText, CheckCircle2, AlertCircle, RefreshCw, ChevronDown, XCircle } from 'lucide-react';
 
 function cn(...c) { return c.filter(Boolean).join(' '); }
 
@@ -143,8 +143,8 @@ const PrintOrder = () => {
                             'flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200',
                             fileUrl ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50/80 hover:border-indigo-600 hover:bg-indigo-600/10'
                         )}>
-                            <input type="file" accept="application/pdf" onChange={handleFileChange} className="sr-only" />
-                            <span className="text-4xl">{fileUrl ? '<CheckCircle2 className="w-5 h-5 shrink-0" />' : '📄'}</span>
+                            <input type="file" accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={handleFileChange} className="sr-only" />
+                            <span className="text-4xl">{fileUrl ? <CheckCircle2 className="w-10 h-10 text-green-500 shrink-0" /> : '📄'}</span>
                             <div className="text-center">
                                 <p className="font-semibold text-sm text-gray-900">{fileUrl ? file?.name : (file ? file.name : 'Click to select PDF')}</p>
                                 <p className="text-xs text-gray-500 mt-0.5">{fileUrl ? 'Uploaded & ready' : 'PDF only, max 100MB'}</p>
@@ -153,10 +153,15 @@ const PrintOrder = () => {
                         {fileUrl && (
                             <div className="mt-4 border rounded-lg overflow-hidden bg-gray-50/80">
                                 <div className="p-2 border-b bg-gray-50/80 flex justify-between items-center">
-                                    <span className="text-xs font-semibold text-gray-500">PDF Preview</span>
-                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-600 font-semibold">Open Fullscreen</a>
+                                    <span className="text-xs font-semibold text-gray-500">Document Preview</span>
+                                    <div className="flex gap-4">
+                                        <a href={fileUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1">Open Fullscreen</a>
+                                        <button type="button" onClick={() => { setFile(null); setFileUrl(''); }} className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1">Remove File <XCircle className="w-3 h-3" /></button>
+                                    </div>
                                 </div>
-                                <iframe src={`${fileUrl}#view=FitH`} className="w-full h-96" title="PDF Preview" />
+                                <object data={`${fileUrl}#view=FitH`} type="application/pdf" className="w-full h-96">
+                                    <iframe src={`https://docs.google.com/viewer?url=${encodeURIComponent(fileUrl)}&embedded=true`} className="w-full h-96 border-0" title="Document Preview" />
+                                </object>
                             </div>
                         )}
                         {file && !fileUrl && (
