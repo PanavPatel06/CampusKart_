@@ -1,3 +1,4 @@
+import { useAlert } from '../context/AlertContext';
 // client/src/pages/Register.jsx  ← replace existing file entirely
 // Logic IDENTICAL to original — same formData, handleChange, handleSubmit, AuthContext.
 
@@ -13,6 +14,7 @@ const ROLES = [
 ];
 
 const Register = () => {
+    const { showAlert } = useAlert();
     // ← identical to original
     const [formData, setFormData] = useState({
         name: '', email: '', password: '',
@@ -37,7 +39,7 @@ const Register = () => {
             if (data.token) {
                 navigate('/dashboard');
             } else {
-                alert(data.message || 'Registration successful! Please wait for admin approval before logging in.');
+                showAlert(data.message || 'Registration successful! Please wait for admin approval before logging in.');
                 navigate('/login');
             }
         } catch (err) {

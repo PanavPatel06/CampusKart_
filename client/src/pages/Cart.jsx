@@ -1,3 +1,4 @@
+import { useAlert } from '../context/AlertContext';
 // client/src/pages/Cart.jsx  ← replace existing file entirely
 // Logic is IDENTICAL — same contexts, same handleCheckout with per-vendor loop,
 // same validItems logic, same alerts, same navigate('/dashboard').
@@ -10,7 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, ChevronDown, MapPin, Trash2, ArrowRight, ShieldCheck, CreditCard } from 'lucide-react';
 
 const Cart = () => {
-    // ← identical state/logic to original
+    const { showAlert } = useAlert();
+        // ← identical state/logic to original
     const { cartItems, removeFromCart, updateCartItemQty, clearCart, cartTotal } = useContext(CartContext);
     const { user }    = useContext(AuthContext);
     const navigate    = useNavigate();
@@ -34,15 +36,15 @@ const Cart = () => {
     const handleCheckout = async () => {
         if (validItems.length === 0) return;
         if (!deliveryLocation) {
-            alert('Please select a delivery location.');
+            showAlert('Please select a delivery location.');
             return;
         }
         if (walletBalance < cartTotal) {
-            alert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${cartTotal}. Please report to Admin for recharge.`);
+            showAlert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${cartTotal}. Please report to Admin for recharge.`);
             return;
         }
         if (validItems.length < cartItems.length) {
-            alert('Notice: Some items were removed due to invalid vendor data.');
+            showAlert('Notice: Some items were removed due to invalid vendor data.');
         }
 
         // Open confirm modal instead of directly placing order
@@ -70,21 +72,19 @@ const Cart = () => {
                 await createOrder(orderData);
             }
             clearCart();
-            alert('Order Placed Successfully!');
+            showAlert('Order Placed Successfully!');
             navigate('/dashboard');
         } catch (error) {
             console.error('Checkout failed', error);
-            alert('Checkout failed: ' + (error.response?.data?.message || error.message));
+            showAlert('Checkout failed: ' + (error.response?.data?.message || error.message));
         }
     };
 
     const isAffordable = walletBalance >= cartTotal;
 
     // ─── Modal ─────────────────────────────────────────────────────────────
-    const CheckoutModal = () => {
-        if (!showConfirm) return null;
-        return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-accent/60 backdrop-blur-sm">
+    {showConfirm && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-accent/60 backdrop-blur-sm">
                 <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <div className="bg-gradient-to-r from-indigo-600 to-indigo-600 p-6 text-white">
                         <h3 className="text-xl font-black">Confirm Your Order</h3>
@@ -130,8 +130,7 @@ const Cart = () => {
                     </div>
                 </div>
             </div>
-        );
-    };
+)}
 
     // ─── Empty state ───────────────────────────────────────────────────────
     if (cartItems.length === 0) {
@@ -154,7 +153,7 @@ const Cart = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-indigo-600/10 to-white">
-            <CheckoutModal />
+            
             
             {/* Page header */}
             <div className="bg-white border-b border-gray-200 shadow-sm">

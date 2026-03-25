@@ -80,8 +80,7 @@ const Navbar = () => {
     const { cartItems }    = useContext(CartContext);
     const navigate         = useNavigate();
     const location         = useLocation();
-    const [mobileOpen, setMobileOpen] = useState(false);
-
+    
     const handleLogout = () => {
         logout();
         navigate('/login');

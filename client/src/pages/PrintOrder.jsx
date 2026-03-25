@@ -5,7 +5,8 @@ import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadFile, createOrder, getVendors, getLocations, getMyWallet } from '../services/api';
 import AuthContext from '../context/AuthContext';
-import { Printer, UploadCloud, FileText, CheckCircle2, AlertCircle, RefreshCw, ChevronDown } from 'lucide-react';
+import { Printer, UploadCloud, FileText, CheckCircle2, AlertCircle, RefreshCw, ChevronDown, X } from 'lucide-react';
+import { AlertModal } from '../components/ui/AlertModal';
 
 function cn(...c) { return c.filter(Boolean).join(' '); }
 
@@ -24,6 +25,9 @@ const PrintOrder = () => {
     const [deliveryLocation, setDeliveryLocation] = useState('');
     const [walletBalance, setWalletBalance] = useState(0);
     const [printOptions,  setPrintOptions]  = useState({ color: 'bw', sided: 'single', pages: 1, copies: 1 });
+    const [alertConfig,   setAlertConfig]   = useState({ isOpen: false, message: '', type: 'error' });
+
+    const showAlert = (message, type = 'error') => setAlertConfig({ isOpen: true, message, type });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -44,7 +48,7 @@ const PrintOrder = () => {
     const handleUpload = async () => {
         if (!file) return;
         if (file.size > 100 * 1024 * 1024) {
-            alert('File size exceeds the 100MB limit.');
+            showAlert('File size exceeds the 100MB limit.', 'error');
             return;
         }
         const formData = new FormData();
@@ -53,9 +57,9 @@ const PrintOrder = () => {
             setUploading(true);
             const { data } = await uploadFile(formData);
             setFileUrl(data.fileUrl);
-            alert('File uploaded successfully!');
+            showAlert('File uploaded successfully!', 'success');
         } catch (error) {
-            alert('Upload failed: ' + (error.response?.data?.message || error.message));
+            showAlert('Upload failed: ' + (error.response?.data?.message || error.message), 'error');
         } finally { setUploading(false); }
     };
 
@@ -73,15 +77,15 @@ const PrintOrder = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!fileUrl)           { alert('Please upload a file first'); return; }
-        if (!vendorId)          { alert('Please select a vendor'); return; }
-        if (!deliveryLocation)  { alert('Please select a delivery location'); return; }
+        if (!fileUrl)           { showAlert('Please upload a file first', 'error'); return; }
+        if (!vendorId)          { showAlert('Please select a vendor', 'error'); return; }
+        if (!deliveryLocation)  { showAlert('Please select a delivery location', 'error'); return; }
         if (walletBalance < estimatedCost) {
-            alert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${estimatedCost}`);
+            showAlert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${estimatedCost}`, 'error');
             return;
         }
         const orderData = {
-            orderItems: [{ name: 'Print Job - ' + file.name, price: pricePerSheet, qty: printOptions.copies, fileUrl, printOptions }],
+            orderItems: [{ name: file.name, price: pricePerSheet, qty: printOptions.copies, fileUrl, printOptions }],
             totalPrice: estimatedCost,
             vendorId,
             deliveryLocation,
@@ -91,7 +95,7 @@ const PrintOrder = () => {
             setOrderSuccess(true);
             setTimeout(() => navigate('/dashboard'), 2000);
         } catch (error) {
-            alert('Order failed: ' + (error.response?.data?.message || error.message));
+            showAlert('Order failed: ' + (error.response?.data?.message || error.message), 'error');
         }
     };
 
@@ -111,6 +115,7 @@ const PrintOrder = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-indigo-600/10 to-white">
+            <AlertModal isOpen={alertConfig.isOpen} message={alertConfig.message} type={alertConfig.type} onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })} />
             {/* Header */}
             <div className="bg-white border-b border-gray-200 shadow-sm">
                 <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
@@ -138,25 +143,36 @@ const PrintOrder = () => {
                     </Section>
 
                     {/* File Upload */}
-                    <Section title="Upload PDF" number={2}>
+                    <Section title="Upload Document (PDF, Word, PPT)" number={2}>
                         <label className={cn(
-                            'flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200',
+                            'flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 relative',
                             fileUrl ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50/80 hover:border-indigo-600 hover:bg-indigo-600/10'
                         )}>
-                            <input type="file" accept="application/pdf" onChange={handleFileChange} className="sr-only" />
+                            <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={handleFileChange} className="sr-only" />
                             <span className="text-4xl">{fileUrl ? '<CheckCircle2 className="w-5 h-5 shrink-0" />' : '📄'}</span>
                             <div className="text-center">
-                                <p className="font-semibold text-sm text-gray-900">{fileUrl ? file?.name : (file ? file.name : 'Click to select PDF')}</p>
-                                <p className="text-xs text-gray-500 mt-0.5">{fileUrl ? 'Uploaded & ready' : 'PDF only, max 100MB'}</p>
+                                <p className="font-semibold text-sm text-gray-900">{fileUrl ? file?.name : (file ? file.name : 'Click to select Document')}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">{fileUrl ? 'Uploaded & ready' : 'PDF, Word, PPT (Max 100MB)'}</p>
                             </div>
                         </label>
+                        {file && (
+                            <div className="mt-2 flex justify-end">
+                                <button type="button" onClick={() => { setFile(null); setFileUrl(''); }} className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 transition-colors">
+                                    <X className="w-3 h-3" /> Remove File
+                                </button>
+                            </div>
+                        )}
                         {fileUrl && (
-                            <div className="mt-4 border rounded-lg overflow-hidden bg-gray-50/80">
-                                <div className="p-2 border-b bg-gray-50/80 flex justify-between items-center">
-                                    <span className="text-xs font-semibold text-gray-500">PDF Preview</span>
-                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-600 font-semibold">Open Fullscreen</a>
+                            <div className="mt-4 border rounded-lg overflow-hidden bg-gray-50/80 shadow-sm">
+                                <div className="p-3 border-b bg-gray-50/80 flex justify-between items-center">
+                                    <span className="text-xs font-semibold text-gray-500">Document Preview</span>
+                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 transition-colors">Open Fullscreen ↗</a>
                                 </div>
-                                <iframe src={`${fileUrl}#view=FitH`} className="w-full h-96" title="PDF Preview" />
+                                {file.name.toLowerCase().endsWith('.pdf') ? (
+                                    <iframe src={`${fileUrl}#view=FitH`} className="w-full h-96" title="Combined Preview" />
+                                ) : (
+                                    <iframe src={`https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`} className="w-full h-96" title="Document Preview fallback" />
+                                )}
                             </div>
                         )}
                         {file && !fileUrl && (

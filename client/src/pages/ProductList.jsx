@@ -1,3 +1,4 @@
+import { useAlert } from '../context/AlertContext';
 // client/src/pages/ProductList.jsx  ← replace existing file entirely
 // Logic IDENTICAL — same getAllProducts, addToCart, alert, loading state.
 
@@ -69,6 +70,7 @@ function ProductCard({ product, onAddToCart, justAdded, userRole }) {
 }
 
 const ProductList = () => {
+    const { showAlert } = useAlert();
     // ← identical to original
     const [products, setProducts] = useState([]);
     const [loading, setLoading]   = useState(true);
@@ -79,7 +81,7 @@ const ProductList = () => {
 
     const handleAddToCart = (product) => {
         addToCart(product);
-        alert('Added to Cart!');               // ← same alert as original
+        showAlert('Added to Cart!');               // ← same alert as original
         setAddedIds(prev => new Set([...prev, product._id]));
         setTimeout(() => setAddedIds(prev => { const n = new Set(prev); n.delete(product._id); return n; }), 2000);
     };

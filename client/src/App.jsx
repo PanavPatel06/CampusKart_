@@ -11,26 +11,29 @@ import Cart from './pages/Cart';
 import DeliveryDashboard from './pages/DeliveryDashboard';
 
 import { CartProvider } from './context/CartContext';
+import { AlertProvider } from './context/AlertContext';
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <CartProvider>
-        <Navbar />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/print-order" element={<PrintOrder />} />
-            <Route path="/add-product" element={<AddProduct />} />
-            <Route path="/products" element={<ProductList />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/delivery" element={<DeliveryDashboard />} />
-          </Route>
-        </Routes>
-      </CartProvider>
+      <AlertProvider>
+        <CartProvider>
+          <Navbar />
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/print-order" element={<PrintOrder />} />
+              <Route path="/add-product" element={<AddProduct />} />
+              <Route path="/products" element={<ProductList />} />
+              <Route path="/cart" element={<Cart />} />
+              <Route path="/delivery" element={<DeliveryDashboard />} />
+            </Route>
+          </Routes>
+        </CartProvider>
+      </AlertProvider>
     </div>
   );
 }

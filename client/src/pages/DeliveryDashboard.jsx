@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // client/src/pages/DeliveryDashboard.jsx
 // Removed online/offline toggle — agent is always active when viewing this page.
 // Added "All" option to delivery zone dropdown.
@@ -7,6 +8,7 @@ import { io } from 'socket.io-client';
 import AuthContext from '../context/AuthContext';
 import { updateOrderStatus, getAvailableOrders, getLocations } from '../services/api';
 import { MapPin, User, Navigation, CheckCircle2, Package, Signal, SignalZero, BellRing, ChevronDown, AlertTriangle, Hourglass } from 'lucide-react';
+import { AlertModal } from '../components/ui/AlertModal';
 
 // socket initialized outside component
 const socket = io('http://localhost:5001');
@@ -19,6 +21,9 @@ const DeliveryDashboard = () => {
     const [selectedLocation, setSelectedLocation] = useState('All');
     const [locations,        setLocations]        = useState([]);
     const [isConnected,      setIsConnected]      = useState(socket.connected);
+    const [alertConfig,      setAlertConfig]      = useState({ isOpen: false, message: '', type: 'error' });
+
+    const showAlert = (message, type = 'error') => setAlertConfig({ isOpen: true, message, type });
 
     useEffect(() => {
         getLocations().then(({ data }) => {
@@ -87,16 +92,17 @@ const DeliveryDashboard = () => {
     const handleAcceptOrder = async (orderId) => {
         try {
             await updateOrderStatus(orderId, 'out_for_delivery');
-            alert('Order accepted! The user has been notified and will receive an OTP.');
+            showAlert('Order accepted! The user has been notified and will receive an OTP.', 'success');
             setAvailableOrders(prev => prev.filter(o => o._id !== orderId));
         } catch (error) {
             console.error('Failed to accept order:', error);
-            alert('Failed to accept order: ' + (error.response?.data?.message || error.message));
+            showAlert('Failed to accept order: ' + (error.response?.data?.message || error.message), 'error');
         }
     };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-900 via-gray-900 to-gray-800">
+            <AlertModal isOpen={alertConfig.isOpen} message={alertConfig.message} type={alertConfig.type} onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })} />
             {/* Top bar */}
             <div className="border-b border-white/10">
                 <div className="max-w-2xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">

@@ -100,7 +100,7 @@ const addOrderItems = async (req, res) => {
 // @route   GET /api/orders/myorders
 // @access  Private
 const getMyOrders = async (req, res) => {
-    const orders = await Order.find({ customer: req.user._id, clearedByCustomer: false }).sort({ createdAt: -1 });
+    const orders = await Order.find({ customer: req.user._id, clearedByCustomer: { $ne: true } }).sort({ createdAt: -1 });
     res.json(orders);
 };
 
