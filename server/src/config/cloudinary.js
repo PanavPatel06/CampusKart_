@@ -15,7 +15,7 @@ const storage = new CloudinaryStorage({
     params: {
         folder: 'campuskart_uploads',
         allowed_formats: ['pdf', 'doc', 'docx', 'ppt', 'pptx'],
-        resource_type: 'raw', // Important for PDFs to be treated as files, not images
+        resource_type: 'raw',
     },
 });
 

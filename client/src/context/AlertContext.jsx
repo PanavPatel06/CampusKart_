@@ -1,48 +1,57 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createContext, useState, useContext } from 'react';
-import { AlertModal } from '../components/ui/AlertModal';
+import { createContext, useContext, useState, useCallback } from 'react';
+import AlertModal from '../components/ui/AlertModal';
 
 const AlertContext = createContext();
 
-export const AlertProvider = ({ children }) => {
-    const [config, setConfig] = useState({ isOpen: false, message: '', type: 'info', onConfirm: null, onCloseCallback: null });
+export function AlertProvider({ children }) {
+    const [alertConfig, setAlertConfig] = useState(null);
 
-    const showAlert = (message, type = 'info') => {
-        setConfig({ isOpen: true, message, type, onConfirm: null, onCloseCallback: null });
-    };
-    
-    const showConfirm = (message) => new Promise((resolve) => {
-        setConfig({ 
-            isOpen: true, 
-            message, 
-            type: 'confirm', 
-            onConfirm: () => resolve(true), 
-            onCloseCallback: () => resolve(false) 
+    const showAlert = useCallback((message, type = 'success', waitDuration = 3000) => {
+        setAlertConfig({ message, type, showConfirm: false });
+        // Auto-hide alert after duration
+        if (waitDuration) {
+            setTimeout(() => setAlertConfig(null), waitDuration);
+        }
+    }, []);
+
+    const showConfirm = useCallback((message, type = 'danger') => {
+        return new Promise((resolve) => {
+            setAlertConfig({
+                message,
+                type,
+                showConfirm: true,
+                onConfirm: () => {
+                    setAlertConfig(null);
+                    resolve(true);
+                },
+                onCancel: () => {
+                    setAlertConfig(null);
+                    resolve(false);
+                }
+            });
         });
-    });
+    }, []);
 
-    const close = () => {
-        if (config.onCloseCallback && config.type === 'confirm') config.onCloseCallback();
-        setConfig(prev => ({ ...prev, isOpen: false }));
-    };
-
-    const confirm = () => {
-        if (config.onConfirm) config.onConfirm();
-        setConfig(prev => ({ ...prev, isOpen: false }));
-    };
+    const closeAlert = useCallback(() => {
+        setAlertConfig(null);
+    }, []);
 
     return (
         <AlertContext.Provider value={{ showAlert, showConfirm }}>
             {children}
-            <AlertModal 
-                isOpen={config.isOpen} 
-                message={config.message} 
-                type={config.type} 
-                onClose={close} 
-                onConfirm={config.type === 'confirm' ? confirm : null} 
-            />
+            {alertConfig && (
+                <AlertModal
+                    isOpen={!!alertConfig}
+                    message={alertConfig.message}
+                    type={alertConfig.type}
+                    showConfirm={alertConfig.showConfirm}
+                    onConfirm={alertConfig.onConfirm}
+                    onCancel={alertConfig.onCancel}
+                    onClose={closeAlert}
+                />
+            )}
         </AlertContext.Provider>
     );
-};
+}
 
 export const useAlert = () => useContext(AlertContext);

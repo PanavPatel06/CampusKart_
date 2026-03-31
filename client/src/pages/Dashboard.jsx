@@ -1,6 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-/* eslint-disable no-unused-vars, react-hooks/exhaustive-deps */
-import { useAlert } from '../context/AlertContext';
 // client/src/pages/Dashboard.jsx  ← replace existing file entirely
 // Logic is IDENTICAL — same API calls, same state, same handlers, same role checks.
 
@@ -91,7 +88,6 @@ function SectionTitle({ children }) {
 
 // ─── USER SECTION ─────────────────────────────────────────────────────────
 function UserSection({ orders, deliveries, userWalletBalance, handleStatusUpdate, handleClearHistory }) {
-        const { showAlert, showConfirm } = useAlert();
     const [otpInputs, setOtpInputs] = useState({});
     const [paymentOrder, setPaymentOrder] = useState(null);
 
@@ -214,7 +210,7 @@ function UserSection({ orders, deliveries, userWalletBalance, handleStatusUpdate
                                         <button onClick={() => {
                                             const otp = otpInputs[order._id]?.trim();
                                             if (!otp || otp.length !== 4) {
-                                                showAlert('Please enter the 4-digit OTP from the customer.');
+                                                alert('Please enter the 4-digit OTP from the customer.');
                                                 return;
                                             }
                                             handleStatusUpdate(order._id, 'delivered', otp);
@@ -270,7 +266,6 @@ function VendorSection({
     orders, handleStatusUpdate, products, handleDeleteProduct,
     locations, fetchLocations
 }) {
-    const { showAlert, showConfirm } = useAlert();
     const [newLocation, setNewLocation] = useState('');
 
     return (
@@ -327,7 +322,7 @@ function VendorSection({
                     <button onClick={async () => {
                         if (!newLocation.trim()) return;
                         try { await addLocation(newLocation.trim()); setNewLocation(''); fetchLocations(); }
-                        catch (error) { showAlert(error.message); }
+                        catch (e) { alert(e.message); }
                     }} className="px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">
                         + Add
                     </button>
@@ -342,9 +337,9 @@ function VendorSection({
                                     <span className="text-gray-500"><MapPin className="w-5 h-5 shrink-0" /></span>{loc.name}
                                 </span>
                                 <button onClick={async () => {
-                                    if (await showConfirm('Delete this location?')) {
+                                    if (window.confirm('Delete this location?')) {
                                         try { await deleteLocation(loc._id); fetchLocations(); }
-                                        catch (error) { showAlert(error.message); }
+                                        catch (e) { alert(e.message); }
                                     }
                                 }} className="text-red-400 hover:text-red-600 font-bold text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-50">
                                     ✕
@@ -441,7 +436,6 @@ function AdminSection({
     handleUserSearch, handleAddFunds, handleUpdateCommission,
     fetchLocations, fetchAdminWalletData, // Added fetchAdminWalletData to refresh after reset
 }) {
-    const { showAlert, showConfirm } = useAlert();
     const [activeTab, setActiveTab] = useState('orders');
     const [pendingUsers, setPendingUsers] = useState([]);
     const [analyticsData, setAnalyticsData] = useState([]);
@@ -452,7 +446,7 @@ function AdminSection({
         try {
             const { data } = await getPendingUsers();
             setPendingUsers(data);
-        } catch {
+        } catch (e) {
             console.error('Failed to fetch pending users');
         }
     };
@@ -462,8 +456,8 @@ function AdminSection({
         try {
             const { data } = await getAdminAnalytics(type);
             setAnalyticsData(data);
-        } catch (error) {
-            console.error('Failed to fetch analytics', error);
+        } catch (e) {
+            console.error('Failed to fetch analytics', e);
         } finally {
             setLoadingAnalytics(false);
         }
@@ -482,31 +476,35 @@ function AdminSection({
     const handleApprove = async (id) => {
         try {
             await approveUser(id);
-            showAlert('User approved!');
+            alert('User approved!');
             fetchPendingUsers();
-        } catch { showAlert('Error approving user'); }
+        } catch (e) {
+            alert('Error approving user');
+        }
     };
 
     const handleReject = async (id) => {
-        if (await showConfirm("Are you sure you want to reject and delete this registration?")) {
+        if (window.confirm("Are you sure you want to reject and delete this registration?")) {
             try {
                 await rejectUser(id);
-                showAlert('User rejected!');
+                alert('User rejected!');
                 fetchPendingUsers();
-            } catch { showAlert('Error rejecting user'); }
+            } catch (e) {
+                alert('Error rejecting user');
+            }
         }
     };
 
     const handleReset = async () => {
-        if (await showConfirm("CRITICAL WARNING: This will permanently DELETE all orders, transactions, products, and vendors. All user wallets will be reset to 0. This cannot be undone. Are you absolutely sure?")) {
+        if (window.confirm("CRITICAL WARNING: This will permanently DELETE all orders, transactions, products, and vendors. All user wallets will be reset to 0. This cannot be undone. Are you absolutely sure?")) {
             const confirmText = prompt("Type 'RESET' to confirm system-wide data deletion:");
             if (confirmText === 'RESET') {
                 try {
                     await resetSystem();
-                    showAlert('System reset successfully.');
+                    alert('System reset successfully.');
                     window.location.reload(); // Refresh to clear state
-                } catch (error) {
-                    showAlert('Reset failed: ' + error.message);
+                } catch (e) {
+                    alert('Reset failed: ' + e.message);
                 }
             }
         }
@@ -624,7 +622,7 @@ function AdminSection({
                                                 contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
                                                 cursor={{ fill: 'transparent' }}
                                             />
-                                            <Line type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4, fill: '#4f46e5' }} />
+                                            <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 ) : (
@@ -656,15 +654,23 @@ function AdminSection({
                         <div className="flex flex-wrap gap-5 items-end">
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Company %</label>
-                                <input type="number" value={commissionRates.companyRate}
-                                    onChange={(e) => setCommissionRates({ ...commissionRates, companyRate: Number(e.target.value) })}
+                                <input type="number" min="0" max="100" value={commissionRates.companyRate}
+                                    onChange={(e) => {
+                                        let val = Number(e.target.value);
+                                        if (val > 100) val = 100;
+                                        setCommissionRates({ ...commissionRates, companyRate: val });
+                                    }}
                                     className="w-24 px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                                 />
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Delivery %</label>
-                                <input type="number" value={commissionRates.deliveryRate}
-                                    onChange={(e) => setCommissionRates({ ...commissionRates, deliveryRate: Number(e.target.value) })}
+                                <input type="number" min="0" max="100" value={commissionRates.deliveryRate}
+                                    onChange={(e) => {
+                                        let val = Number(e.target.value);
+                                        if (val > 100) val = 100;
+                                        setCommissionRates({ ...commissionRates, deliveryRate: val });
+                                    }}
                                     className="w-24 px-3 py-2 bg-gray-50/80 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all"
                                 />
                             </div>
@@ -715,7 +721,11 @@ function AdminSection({
                             <p className="text-sm font-semibold text-blue-800 mb-3">Adding funds to: {selectedUser.name}</p>
                             <div className="flex gap-2">
                                 <input type="number" placeholder="Amount (₹)" value={fundAmount}
-                                    onChange={(e) => setFundAmount(e.target.value)}
+                                    onChange={(e) => {
+                                        let val = Number(e.target.value);
+                                        if (val > 10000000) val = 10000000;
+                                        setFundAmount(val);
+                                    }}
                                     className="flex-1 px-4 py-2.5 bg-white border border-indigo-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400/25 focus:border-blue-400"
                                 />
                                 <button onClick={handleAddFunds}
@@ -740,7 +750,7 @@ function AdminSection({
                         <button onClick={async () => {
                             if (!newLocation.trim()) return;
                             try { await addLocation(newLocation.trim()); setNewLocation(''); fetchLocations(); }
-                            catch (error) { showAlert(error.message); }
+                            catch (e) { alert(e.message); }
                         }} className="px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">
                             + Add
                         </button>
@@ -755,9 +765,9 @@ function AdminSection({
                                         <span className="text-gray-500"><MapPin className="w-5 h-5 shrink-0" /></span>{loc.name}
                                     </span>
                                     <button onClick={async () => {
-                                        if (await showConfirm('Delete this location?')) {
+                                        if (window.confirm('Delete this location?')) {
                                             try { await deleteLocation(loc._id); fetchLocations(); }
-                                            catch (error) { showAlert(error.message); }
+                                            catch (e) { alert(e.message); }
                                         }
                                     }} className="text-red-400 hover:text-red-600 font-bold text-sm opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-50">
                                         ✕
@@ -836,8 +846,7 @@ function AdminSection({
 }
 
 // ─── AGENT SECTION ────────────────────────────────────────────────────────
-function AgentSection({ deliveries, handleStatusUpdate }) {
-    const { showAlert } = useAlert();
+function AgentSection({ deliveries, handleStatusUpdate, user }) {
     const [otpInputs, setOtpInputs] = useState({});
     const [paymentOrder, setPaymentOrder] = useState(null);
 
@@ -851,18 +860,15 @@ function AgentSection({ deliveries, handleStatusUpdate }) {
         setPaymentOrder(null);
     };
 
-    const totalEarnings = deliveries.reduce((acc, order) => {
-        if (order.status === 'delivered') return acc + (order.commission?.delivery || 0);
-        return acc;
-    }, 0);
+    const agentEarnings = deliveries.filter(d => d.status === 'delivered').reduce((sum, d) => sum + (d.commission?.delivery || 0), 0);
 
     return (
         <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <StatCard label="Earnings"  value={`₹${totalEarnings.toFixed(2)}`} icon={<TrendingUp className="w-5 h-5 shrink-0" />} accent="green" />
+                <StatCard label="Earnings"  value={`₹${agentEarnings.toFixed(2)}`} icon={<Wallet className="w-5 h-5 shrink-0" />} accent="green" />
                 <StatCard label="Assigned"  value={deliveries.length} icon={<Truck className="w-5 h-5 shrink-0" />} accent="orange" />
                 <StatCard label="Active"    value={deliveries.filter(d => d.status === 'out_for_delivery').length} icon={<MapPin className="w-5 h-5 shrink-0" />} accent="blue" />
-                <StatCard label="Delivered" value={deliveries.filter(d => d.status === 'delivered').length} icon={<CheckCircle2 className="w-5 h-5 shrink-0" />} accent="purple" />
+                <StatCard label="Delivered" value={deliveries.filter(d => d.status === 'delivered').length} icon={<CheckCircle2 className="w-5 h-5 shrink-0" />} accent="green" />
             </div>
             <Card>
                 <SectionTitle>My Deliveries</SectionTitle>
@@ -901,7 +907,7 @@ function AgentSection({ deliveries, handleStatusUpdate }) {
                                         <button onClick={() => {
                                             const otp = otpInputs[order._id]?.trim();
                                             if (!otp || otp.length !== 4) {
-                                                showAlert('Please enter the 4-digit OTP from the customer.');
+                                                alert('Please enter the 4-digit OTP from the customer.');
                                                 return;
                                             }
                                             handleStatusUpdate(order._id, 'delivered', otp);
@@ -957,7 +963,6 @@ function AgentSection({ deliveries, handleStatusUpdate }) {
 
 // ─── Dashboard ────────────────────────────────────────────────────────────
 const Dashboard = () => {
-    const { showAlert, showConfirm } = useAlert();
     // ← ALL identical to original
     const { user }   = useContext(AuthContext);
     const [orders,     setOrders]     = useState([]);
@@ -976,10 +981,10 @@ const Dashboard = () => {
 
     const fetchLocations = async () => {
         try { const { data } = await getLocations(); setLocations(data); }
-        catch (error) { console.error(error); }
+        catch (e) { console.error(e); }
     };
 
-        const fetchAdminWalletData = async () => {
+    const fetchAdminWalletData = async () => {
         try {
             const [earningsRes, commRes] = await Promise.all([
                 getSystemEarnings(),
@@ -987,7 +992,7 @@ const Dashboard = () => {
             ]);
             setSystemEarnings(earningsRes.data);
             setCommissionRates(commRes.data);
-        } catch (error) { console.error('Failed to fetch admin wallet data', error); }
+        } catch (e) { console.error('Failed to fetch admin wallet data', e); }
     };
 
     const fetchOrders = async () => {
@@ -1036,27 +1041,23 @@ const Dashboard = () => {
     const handleUserSearch = async (e) => {
         e.preventDefault();
         try { const { data } = await searchUsers(walletSearch); setWalletUsers(data); }
-        catch (error) { showAlert(error.message); }
+        catch (e) { alert(e.message); }
     };
 
     const handleDeleteProduct = async (id) => {
-        if (await showConfirm('Are you sure you want to delete this product?')) {
+        if (window.confirm('Are you sure you want to delete this product?')) {
             try {
                 await deleteProduct(id);
                 setVendorProducts(vendorProducts.filter(p => p._id !== id));
-            } catch { showAlert('Failed to delete product'); }
+            } catch (e) { alert('Failed to delete product'); }
         }
     };
 
     const handleAddFunds = async () => {
         if (!selectedUser || !fundAmount) return;
-        if (Number(fundAmount) > 10000000) {
-            showAlert('Maximum fund amount at a time is ₹1,00,00,000 (1 Crore)');
-            return;
-        }
         try {
             await addFunds(selectedUser._id, fundAmount);
-            showAlert('Funds added successfully');
+            alert('Funds added successfully');
             setFundAmount('');
             setSelectedUser(null);
             // Re-fetch the user list so the admin sees the updated balance
@@ -1065,30 +1066,26 @@ const Dashboard = () => {
                 setWalletUsers(data);
             }
             fetchAdminWalletData();
-        } catch (error) { showAlert(error.response?.data?.message || error.message); }
+        } catch (e) { alert(e.response?.data?.message || e.message); }
     };
 
     const handleUpdateCommission = async () => {
-        if (commissionRates.companyRate + commissionRates.deliveryRate > 100) {
-            showAlert('Total commission margin cannot exceed 100%');
-            return;
-        }
-        try { await updateCommissionRates(commissionRates); showAlert('Commission rates updated'); }
-        catch (error) { showAlert(error.message); }
+        try { await updateCommissionRates(commissionRates); alert('Commission rates updated'); }
+        catch (e) { alert(e.message); }
     };
 
     const handleStatusUpdate = async (orderId, newStatus, otp = null) => {
         try { await updateOrderStatus(orderId, newStatus, otp); fetchOrders(); }
-        catch (error) { showAlert('Failed to update status: ' + (error.response?.data?.message || error.message)); }
+        catch (error) { alert('Failed to update status: ' + (error.response?.data?.message || error.message)); }
     };
 
     const handleClearHistory = async () => {
-        if (await showConfirm('Are you sure you want to clear your completed and cancelled orders from view?')) {
+        if (window.confirm('Are you sure you want to clear your completed and cancelled orders from view?')) {
             try {
                 await clearMyOrders();
                 fetchOrders();
             } catch (error) {
-                showAlert('Failed to clear order history: ' + (error.response?.data?.message || error.message));
+                alert('Failed to clear order history: ' + (error.response?.data?.message || error.message));
             }
         }
     };

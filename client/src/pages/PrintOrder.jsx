@@ -5,8 +5,7 @@ import { useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { uploadFile, createOrder, getVendors, getLocations, getMyWallet } from '../services/api';
 import AuthContext from '../context/AuthContext';
-import { Printer, UploadCloud, FileText, CheckCircle2, AlertCircle, RefreshCw, ChevronDown, X } from 'lucide-react';
-import { AlertModal } from '../components/ui/AlertModal';
+import { Printer, UploadCloud, FileText, CheckCircle2, AlertCircle, RefreshCw, ChevronDown, XCircle } from 'lucide-react';
 
 function cn(...c) { return c.filter(Boolean).join(' '); }
 
@@ -19,15 +18,13 @@ const PrintOrder = () => {
     const [fileUrl,       setFileUrl]       = useState('');
     const [uploading,     setUploading]     = useState(false);
     const [orderSuccess,  setOrderSuccess]  = useState(false);
+    const [blobUrl,       setBlobUrl]       = useState(null); // Local blob state for secure inline PDF bypassing
     const [vendors,       setVendors]       = useState([]);
     const [vendorId,      setVendorId]      = useState('');
     const [locations,     setLocations]     = useState([]);
     const [deliveryLocation, setDeliveryLocation] = useState('');
     const [walletBalance, setWalletBalance] = useState(0);
     const [printOptions,  setPrintOptions]  = useState({ color: 'bw', sided: 'single', pages: 1, copies: 1 });
-    const [alertConfig,   setAlertConfig]   = useState({ isOpen: false, message: '', type: 'error' });
-
-    const showAlert = (message, type = 'error') => setAlertConfig({ isOpen: true, message, type });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -43,12 +40,41 @@ const PrintOrder = () => {
         fetchData();
     }, [user]);
 
-    const handleFileChange = (e) => { setFile(e.target.files[0]); };
+    // Securely pull the PDF directly into browser memory to strip forced Cloudinary attachment headers!
+    useEffect(() => {
+        if (!fileUrl) {
+            setBlobUrl(null);
+            return;
+        }
+        const ext = file?.name?.split('.').pop().toLowerCase() || 'pdf';
+        if (ext === 'pdf') {
+            fetch(fileUrl)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Cloudinary returned HTTP ${res.status}`);
+                    return res.arrayBuffer(); // Extract raw binary explicitly
+                })
+                .then(buffer => {
+                    // Reconstruct a pristine PDF blob from absolute scratch
+                    const pristineBlob = new Blob([buffer], { type: 'application/pdf' });
+                    setBlobUrl(URL.createObjectURL(pristineBlob));
+                })
+                .catch(err => {
+                    console.error("Blob proxy failed:", err);
+                    setBlobUrl('error');
+                });
+        }
+    }, [fileUrl, file]);
+
+    const handleFileChange = (e) => { 
+        setFile(e.target.files[0]);
+        setFileUrl('');
+        setBlobUrl(null);
+    };
 
     const handleUpload = async () => {
         if (!file) return;
         if (file.size > 100 * 1024 * 1024) {
-            showAlert('File size exceeds the 100MB limit.', 'error');
+            alert('File size exceeds the 100MB limit.');
             return;
         }
         const formData = new FormData();
@@ -57,9 +83,9 @@ const PrintOrder = () => {
             setUploading(true);
             const { data } = await uploadFile(formData);
             setFileUrl(data.fileUrl);
-            showAlert('File uploaded successfully!', 'success');
+            alert('File uploaded successfully!');
         } catch (error) {
-            showAlert('Upload failed: ' + (error.response?.data?.message || error.message), 'error');
+            alert('Upload failed: ' + (error.response?.data?.message || error.message));
         } finally { setUploading(false); }
     };
 
@@ -77,15 +103,15 @@ const PrintOrder = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!fileUrl)           { showAlert('Please upload a file first', 'error'); return; }
-        if (!vendorId)          { showAlert('Please select a vendor', 'error'); return; }
-        if (!deliveryLocation)  { showAlert('Please select a delivery location', 'error'); return; }
+        if (!fileUrl)           { alert('Please upload a file first'); return; }
+        if (!vendorId)          { alert('Please select a vendor'); return; }
+        if (!deliveryLocation)  { alert('Please select a delivery location'); return; }
         if (walletBalance < estimatedCost) {
-            showAlert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${estimatedCost}`, 'error');
+            alert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${estimatedCost}`);
             return;
         }
         const orderData = {
-            orderItems: [{ name: file.name, price: pricePerSheet, qty: printOptions.copies, fileUrl, printOptions }],
+            orderItems: [{ name: 'Print Job - ' + file.name, price: pricePerSheet, qty: printOptions.copies, fileUrl, printOptions }],
             totalPrice: estimatedCost,
             vendorId,
             deliveryLocation,
@@ -95,7 +121,7 @@ const PrintOrder = () => {
             setOrderSuccess(true);
             setTimeout(() => navigate('/dashboard'), 2000);
         } catch (error) {
-            showAlert('Order failed: ' + (error.response?.data?.message || error.message), 'error');
+            alert('Order failed: ' + (error.response?.data?.message || error.message));
         }
     };
 
@@ -115,7 +141,6 @@ const PrintOrder = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-indigo-600/10 to-white">
-            <AlertModal isOpen={alertConfig.isOpen} message={alertConfig.message} type={alertConfig.type} onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })} />
             {/* Header */}
             <div className="bg-white border-b border-gray-200 shadow-sm">
                 <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
@@ -143,36 +168,50 @@ const PrintOrder = () => {
                     </Section>
 
                     {/* File Upload */}
-                    <Section title="Upload Document (PDF, Word, PPT)" number={2}>
+                    <Section title="Upload PDF" number={2}>
                         <label className={cn(
-                            'flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 relative',
+                            'flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200',
                             fileUrl ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50/80 hover:border-indigo-600 hover:bg-indigo-600/10'
                         )}>
-                            <input type="file" accept=".pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={handleFileChange} className="sr-only" />
-                            <span className="text-4xl">{fileUrl ? '<CheckCircle2 className="w-5 h-5 shrink-0" />' : '📄'}</span>
+                            <input type="file" accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={handleFileChange} className="sr-only" />
+                            <span className="text-4xl">{fileUrl ? <CheckCircle2 className="w-10 h-10 text-green-500 shrink-0" /> : '📄'}</span>
                             <div className="text-center">
-                                <p className="font-semibold text-sm text-gray-900">{fileUrl ? file?.name : (file ? file.name : 'Click to select Document')}</p>
-                                <p className="text-xs text-gray-500 mt-0.5">{fileUrl ? 'Uploaded & ready' : 'PDF, Word, PPT (Max 100MB)'}</p>
+                                <p className="font-semibold text-sm text-gray-900">{fileUrl ? file?.name : (file ? file.name : 'Click to select PDF')}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">{fileUrl ? 'Uploaded & ready' : 'PDF only, max 100MB'}</p>
                             </div>
                         </label>
-                        {file && (
-                            <div className="mt-2 flex justify-end">
-                                <button type="button" onClick={() => { setFile(null); setFileUrl(''); }} className="text-xs text-red-500 hover:text-red-700 font-bold flex items-center gap-1 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 transition-colors">
-                                    <X className="w-3 h-3" /> Remove File
-                                </button>
-                            </div>
-                        )}
                         {fileUrl && (
-                            <div className="mt-4 border rounded-lg overflow-hidden bg-gray-50/80 shadow-sm">
-                                <div className="p-3 border-b bg-gray-50/80 flex justify-between items-center">
+                            <div className="mt-4 border rounded-lg overflow-hidden bg-gray-50/80">
+                                <div className="p-2 border-b bg-gray-50/80 flex justify-between items-center">
                                     <span className="text-xs font-semibold text-gray-500">Document Preview</span>
-                                    <a href={fileUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 px-3 py-1.5 rounded-full border border-indigo-100 transition-colors">Open Fullscreen ↗</a>
+                                    <div className="flex gap-4">
+                                        <a href={fileUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1">Open Fullscreen</a>
+                                        <button type="button" onClick={() => { setFile(null); setFileUrl(''); setBlobUrl(null); }} className="text-xs text-red-500 hover:text-red-700 font-semibold flex items-center gap-1">Remove File <XCircle className="w-3 h-3" /></button>
+                                    </div>
                                 </div>
-                                {file.name.toLowerCase().endsWith('.pdf') ? (
-                                    <iframe src={`${fileUrl}#view=FitH`} className="w-full h-96" title="Combined Preview" />
-                                ) : (
-                                    <iframe src={`https://docs.google.com/gview?url=${encodeURIComponent(fileUrl)}&embedded=true`} className="w-full h-96" title="Document Preview fallback" />
-                                )}
+                                {(() => {
+                                    const ext = file?.name?.split('.').pop().toLowerCase() || 'pdf';
+                                    const guaranteedUrl = fileUrl.toLowerCase().endsWith(`.${ext}`) ? fileUrl : `${fileUrl}.${ext}`;
+                                    
+                                    if (ext === 'pdf') {
+                                        return blobUrl === 'error' ? (
+                                            <div className="w-full h-96 flex flex-col items-center justify-center bg-gray-50/80">
+                                                <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
+                                                <p className="text-red-600 text-sm font-bold">Network Proxy Failed</p>
+                                                <p className="text-gray-500 text-xs">The PDF could not be securely fetched from Cloudinary.</p>
+                                            </div>
+                                        ) : blobUrl ? (
+                                            <iframe src={`${blobUrl}#view=FitH`} className="w-full h-96 border-0" title="PDF Preview" />
+                                        ) : (
+                                            <div className="w-full h-96 flex flex-col items-center justify-center bg-gray-50">
+                                                <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                                                <p className="text-gray-500 text-sm font-semibold">Generating secure preview…</p>
+                                            </div>
+                                        );
+                                    } else {
+                                        return <iframe src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(guaranteedUrl)}`} className="w-full h-96 border-0" title="Document Preview" />;
+                                    }
+                                })()}
                             </div>
                         )}
                         {file && !fileUrl && (
