@@ -57,7 +57,7 @@ const DeliveryDashboard = () => {
 
         socket.on('new_delivery_request', (order) => {
             if (selectedLocation !== 'All') {
-                const orderLocation = order.vendor?.location || '';
+                const orderLocation = order.deliveryLocation || '';
                 if (orderLocation.trim().toLowerCase() !== selectedLocation.trim().toLowerCase()) return;
             }
             const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-positive-notification-951.mp3');

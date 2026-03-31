@@ -20,6 +20,7 @@ const Cart = () => {
     const [deliveryLocation, setDeliveryLocation]  = useState('');
     const [walletBalance,    setWalletBalance]     = useState(0);
     const [showConfirm,      setShowConfirm]       = useState(false);
+    const [isSubmitting,     setIsSubmitting]      = useState(false);
 
     useEffect(() => {
         getLocations().then(({ data }) => setLocations(data)).catch(console.error);
@@ -50,6 +51,8 @@ const Cart = () => {
     };
 
     const confirmOrderPlacement = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         const itemsByVendor = validItems.reduce((acc, item) => {
             const vId = item.vendor?._id || item.vendor;
             if (!acc[vId]) acc[vId] = [];
@@ -75,6 +78,8 @@ const Cart = () => {
         } catch (error) {
             console.error('Checkout failed', error);
             alert('Checkout failed: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -124,8 +129,8 @@ const Cart = () => {
                         <button onClick={() => setShowConfirm(false)} className="flex-1 py-3 text-gray-500 font-bold bg-white border border-gray-200 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors">
                             Cancel
                         </button>
-                        <button onClick={confirmOrderPlacement} className="flex-1 py-3 text-white font-bold bg-green-500 hover:bg-green-600 shadow-md shadow-green-200 rounded-lg transition-all active:scale-[0.98]">
-                            Confirm Order ✓
+                        <button onClick={confirmOrderPlacement} disabled={isSubmitting} className="flex-1 py-3 text-white font-bold bg-green-500 hover:bg-green-600 shadow-md shadow-green-200 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait">
+                            {isSubmitting ? 'Processing...' : 'Confirm Order ✓'}
                         </button>
                     </div>
                 </div>

@@ -179,13 +179,13 @@ const updateOrderStatus = async (req, res) => {
         if (req.user.role === 'user' || req.user.role === 'agent') {
             // Case 1: Customer Cancelling Pending Order
             if (order.customer.toString() === req.user._id.toString()) {
-                if (status !== 'cancelled' || order.status !== 'pending') {
+                if (status !== 'cancelled' || (order.status !== 'pending' && order.status !== 'accepted')) {
                     res.status(400);
-                    throw new Error('Customers can only cancel pending orders');
+                    throw new Error('Customers can only cancel pending or accepted orders');
                 }
             }
             // Case 2: Delivery Agent Accepting Order → directly out_for_delivery
-            else if (status === 'out_for_delivery' && req.user.role === 'agent') {
+            else if (status === 'out_for_delivery') {
                 if (order.status !== 'accepted') {
                     res.status(400);
                     throw new Error('Order must be accepted by vendor first');
@@ -217,7 +217,7 @@ const updateOrderStatus = async (req, res) => {
                 order.paymentStatus = 'paid';
             }
             // Case 3: Delivery Agent Completing Order (OTP required)
-            else if (status === 'delivered' && req.user.role === 'agent') {
+            else if (status === 'delivered') {
                 if (!order.deliveryAgent || order.deliveryAgent.toString() !== req.user._id.toString()) {
                     res.status(401);
                     throw new Error('Not authorized to complete this delivery');
@@ -270,10 +270,10 @@ const updateOrderStatus = async (req, res) => {
 
             // Vendor accepted → notify delivery agents in the location room
             if (status === 'accepted') {
-                const locationRaw = populatedOrder.vendor.location || "";
+                const locationRaw = populatedOrder.deliveryLocation || "";
                 const normalizedLocation = locationRaw.trim().toLowerCase().replace(/\s+/g, '_');
                 const targetRoom = `delivery_${normalizedLocation}`;
-                console.log(`[Socket] Vendor Location: '${locationRaw}' -> Room: '${targetRoom}'`);
+                console.log(`[Socket] Delivery Location: '${locationRaw}' -> Room: '${targetRoom}'`);
                 io.to(targetRoom).emit('new_delivery_request', populatedOrder);
                 console.log(`[Socket] SUCCESS: Emitted event to ${targetRoom}`);
             }
@@ -302,27 +302,17 @@ const getAvailableDeliveryOrders = async (req, res) => {
             return res.status(400).json({ message: 'Location query parameter is required' });
         }
 
-        const Vendor = require('../models/Vendor');
-
-        let vendorQuery = {};
-        if (location !== 'All') {
-            vendorQuery = { location: location };
-        }
-
-        const vendors = await Vendor.find(vendorQuery);
-
-        if (vendors.length === 0) {
-            console.log(`[getAvailableDeliveryOrders] No vendors found for location: ${location}`);
-            return res.json([]);
-        }
-
-        const vendorIds = vendors.map(v => v._id);
-
-        const orders = await Order.find({
-            vendor: { $in: vendorIds },
+        let query = {
             status: 'accepted',
             deliveryAgent: { $exists: false }
-        }).populate('vendor', 'storeName location')
+        };
+
+        if (location !== 'All') {
+            query.deliveryLocation = location;
+        }
+
+        const orders = await Order.find(query)
+            .populate('vendor', 'storeName location')
             .sort({ createdAt: -1 });
 
         console.log(`[getAvailableDeliveryOrders] Found ${orders.length} active orders.`);

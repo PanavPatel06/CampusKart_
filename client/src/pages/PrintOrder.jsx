@@ -24,7 +24,7 @@ const PrintOrder = () => {
     const [locations,     setLocations]     = useState([]);
     const [deliveryLocation, setDeliveryLocation] = useState('');
     const [walletBalance, setWalletBalance] = useState(0);
-    const [printOptions,  setPrintOptions]  = useState({ color: 'bw', sided: 'single', pages: 1, copies: 1 });
+    const [printOptions,  setPrintOptions]  = useState({ color: 'bw', sided: 'single', pages: 1, pageRange: 'All', copies: 1 });
 
     useEffect(() => {
         const fetchData = async () => {
@@ -253,8 +253,15 @@ const PrintOrder = () => {
                                 </div>
                             </div>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <StyledNumberInput label="Pages" value={printOptions.pages}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-sm font-semibold text-gray-900">Pages to Print</label>
+                                <input type="text" placeholder="e.g. All, 1-5, 8" value={printOptions.pageRange}
+                                    onChange={(e) => setPrintOptions({ ...printOptions, pageRange: e.target.value })}
+                                    className="w-full px-4 py-2.5 bg-gray-50/80 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 focus:bg-white transition-all"
+                                />
+                            </div>
+                            <StyledNumberInput label="Total Page Count" value={printOptions.pages}
                                 onChange={(e) => setPrintOptions({ ...printOptions, pages: parseInt(e.target.value) || 1 })} />
                             <StyledNumberInput label="Copies" value={printOptions.copies}
                                 onChange={(e) => setPrintOptions({ ...printOptions, copies: parseInt(e.target.value) || 1 })} />
@@ -270,7 +277,8 @@ const PrintOrder = () => {
                                     ['Vendor',    vendors.find(v => v._id === vendorId)?.storeName || '—'],
                                     ['Delivery',  deliveryLocation || '—'],
                                     ['Mode & sides', `${printOptions.color === 'color' ? '🌈 Color' : '⬛ B&W'} • ${printOptions.sided === 'single' ? 'Single Sided' : 'Double Sided'}`],
-                                    ['Pages × Copies', `${printOptions.pages} × ${printOptions.copies}`],
+                                    ['Pages to Print', printOptions.pageRange],
+                                    ['Page Count × Copies', `${printOptions.pages} × ${printOptions.copies}`],
                                 ].map(([k,v]) => (
                                     <div key={k} className="bg-gray-50/80 rounded-lg p-3">
                                         <p className="text-xs text-gray-500 font-medium mb-0.5">{k}</p>
