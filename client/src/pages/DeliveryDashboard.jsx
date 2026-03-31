@@ -8,7 +8,7 @@ import { io } from 'socket.io-client';
 import AuthContext from '../context/AuthContext';
 import { updateOrderStatus, getAvailableOrders, getLocations } from '../services/api';
 import { MapPin, User, Navigation, CheckCircle2, Package, Signal, SignalZero, BellRing, ChevronDown, AlertTriangle, Hourglass } from 'lucide-react';
-import { AlertModal } from '../components/ui/AlertModal';
+import AlertModal from '../components/ui/AlertModal';
 
 // socket initialized outside component
 const socket = io('http://localhost:5001');
