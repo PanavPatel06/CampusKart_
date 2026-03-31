@@ -87,7 +87,7 @@ function SectionTitle({ children }) {
 }
 
 // ─── USER SECTION ─────────────────────────────────────────────────────────
-function UserSection({ orders, deliveries, userWalletBalance, handleStatusUpdate, handleClearHistory }) {
+function UserSection({ orders, deliveries, userWalletBalance, handleStatusUpdate, isUpdating, handleClearHistory }) {
     const [otpInputs, setOtpInputs] = useState({});
     const [paymentOrder, setPaymentOrder] = useState(null);
 
@@ -150,7 +150,8 @@ function UserSection({ orders, deliveries, userWalletBalance, handleStatusUpdate
                                     } />
                                     {(order.status === 'pending' || order.status === 'accepted') && (
                                         <button onClick={() => handleStatusUpdate(order._id, 'cancelled')}
-                                            className="text-xs font-semibold text-red-500 hover:text-red-700 underline transition-colors">
+                                            disabled={isUpdating}
+                                            className="text-xs font-semibold text-red-500 hover:text-red-700 underline transition-colors disabled:opacity-50">
                                             Cancel
                                         </button>
                                     )}
@@ -263,7 +264,7 @@ function UserSection({ orders, deliveries, userWalletBalance, handleStatusUpdate
 
 // ─── VENDOR SECTION ───────────────────────────────────────────────────────
 function VendorSection({ 
-    orders, handleStatusUpdate, products, handleDeleteProduct,
+    orders, handleStatusUpdate, isUpdating, products, handleDeleteProduct,
     locations, fetchLocations
 }) {
     const [newLocation, setNewLocation] = useState('');
@@ -400,11 +401,13 @@ function VendorSection({
                                     {order.status === 'pending' && (
                                         <>
                                             <button onClick={() => handleStatusUpdate(order._id, 'accepted')}
-                                                className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition-colors">
+                                                disabled={isUpdating}
+                                                className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50">
                                                 ✓ Accept
                                             </button>
                                             <button onClick={() => handleStatusUpdate(order._id, 'rejected')}
-                                                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors">
+                                                disabled={isUpdating}
+                                                className="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50">
                                                 ✕ Reject
                                             </button>
                                         </>
@@ -846,7 +849,7 @@ function AdminSection({
 }
 
 // ─── AGENT SECTION ────────────────────────────────────────────────────────
-function AgentSection({ deliveries, handleStatusUpdate, user }) {
+function AgentSection({ deliveries, handleStatusUpdate, isUpdating }) {
     const [otpInputs, setOtpInputs] = useState({});
     const [paymentOrder, setPaymentOrder] = useState(null);
 
@@ -892,8 +895,9 @@ function AgentSection({ deliveries, handleStatusUpdate, user }) {
                                 {order.status === 'accepted' && (
                                     <div className="flex gap-2 border-t border-gray-200 pt-3">
                                         <button onClick={() => handleAcceptDelivery(order)}
-                                            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors w-full">
-                                            Accept Delivery <Truck className="w-5 h-5 shrink-0" />
+                                            disabled={isUpdating}
+                                            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition-colors w-full">
+                                            {isUpdating ? 'Processing...' : 'Accept Delivery'} <Truck className="w-5 h-5 shrink-0" />
                                         </button>
                                     </div>
                                 )}
@@ -978,6 +982,7 @@ const Dashboard = () => {
     const [systemEarnings,  setSystemEarnings]  = useState(null);
     const [commissionRates, setCommissionRates] = useState({ companyRate: 5, deliveryRate: 5 });
     const [userWalletBalance, setUserWalletBalance] = useState(0);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     const fetchLocations = async () => {
         try { const { data } = await getLocations(); setLocations(data); }
@@ -1075,8 +1080,11 @@ const Dashboard = () => {
     };
 
     const handleStatusUpdate = async (orderId, newStatus, otp = null) => {
+        if (isUpdating) return;
+        setIsUpdating(true);
         try { await updateOrderStatus(orderId, newStatus, otp); fetchOrders(); }
         catch (error) { alert('Failed to update status: ' + (error.response?.data?.message || error.message)); }
+        finally { setIsUpdating(false); }
     };
 
     const handleClearHistory = async () => {
@@ -1146,8 +1154,8 @@ const Dashboard = () => {
                     </div>
                 )}
 
-                {user.role === 'user'   && <UserSection   orders={orders} deliveries={deliveries} userWalletBalance={userWalletBalance} handleStatusUpdate={handleStatusUpdate} handleClearHistory={handleClearHistory} />}
-                {user.role === 'vendor' && <VendorSection orders={orders} handleStatusUpdate={handleStatusUpdate} products={vendorProducts} handleDeleteProduct={handleDeleteProduct} locations={locations} fetchLocations={fetchLocations} />}
+                {user.role === 'user'   && <UserSection   orders={orders} deliveries={deliveries} userWalletBalance={userWalletBalance} handleStatusUpdate={handleStatusUpdate} isUpdating={isUpdating} handleClearHistory={handleClearHistory} />}
+                {user.role === 'vendor' && <VendorSection orders={orders} handleStatusUpdate={handleStatusUpdate} isUpdating={isUpdating} products={vendorProducts} handleDeleteProduct={handleDeleteProduct} locations={locations} fetchLocations={fetchLocations} />}
                 {user.role === 'admin'  && (
                     <AdminSection
                         orders={orders} locations={locations}
@@ -1160,7 +1168,7 @@ const Dashboard = () => {
                         fetchAdminWalletData={fetchAdminWalletData}
                     />
                 )}
-                {user.role === 'agent'  && <AgentSection deliveries={deliveries} handleStatusUpdate={handleStatusUpdate} />}
+                {user.role === 'agent'  && <AgentSection deliveries={deliveries} handleStatusUpdate={handleStatusUpdate} isUpdating={isUpdating} user={user} />}
             </div>
         </div>
     );

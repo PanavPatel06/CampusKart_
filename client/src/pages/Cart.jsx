@@ -1,4 +1,3 @@
-import { useAlert } from '../context/AlertContext';
 // client/src/pages/Cart.jsx  ← replace existing file entirely
 // Logic is IDENTICAL — same contexts, same handleCheckout with per-vendor loop,
 // same validItems logic, same alerts, same navigate('/dashboard').
@@ -11,8 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, ChevronDown, MapPin, Trash2, ArrowRight, ShieldCheck, CreditCard } from 'lucide-react';
 
 const Cart = () => {
-    const { showAlert } = useAlert();
-        // ← identical state/logic to original
+    // ← identical state/logic to original
     const { cartItems, removeFromCart, updateCartItemQty, clearCart, cartTotal } = useContext(CartContext);
     const { user }    = useContext(AuthContext);
     const navigate    = useNavigate();
@@ -22,6 +20,7 @@ const Cart = () => {
     const [deliveryLocation, setDeliveryLocation]  = useState('');
     const [walletBalance,    setWalletBalance]     = useState(0);
     const [showConfirm,      setShowConfirm]       = useState(false);
+    const [isSubmitting,     setIsSubmitting]      = useState(false);
 
     useEffect(() => {
         getLocations().then(({ data }) => setLocations(data)).catch(console.error);
@@ -36,15 +35,15 @@ const Cart = () => {
     const handleCheckout = async () => {
         if (validItems.length === 0) return;
         if (!deliveryLocation) {
-            showAlert('Please select a delivery location.');
+            alert('Please select a delivery location.');
             return;
         }
         if (walletBalance < cartTotal) {
-            showAlert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${cartTotal}. Please report to Admin for recharge.`);
+            alert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${cartTotal}. Please report to Admin for recharge.`);
             return;
         }
         if (validItems.length < cartItems.length) {
-            showAlert('Notice: Some items were removed due to invalid vendor data.');
+            alert('Notice: Some items were removed due to invalid vendor data.');
         }
 
         // Open confirm modal instead of directly placing order
@@ -52,6 +51,8 @@ const Cart = () => {
     };
 
     const confirmOrderPlacement = async () => {
+        if (isSubmitting) return;
+        setIsSubmitting(true);
         const itemsByVendor = validItems.reduce((acc, item) => {
             const vId = item.vendor?._id || item.vendor;
             if (!acc[vId]) acc[vId] = [];
@@ -72,19 +73,23 @@ const Cart = () => {
                 await createOrder(orderData);
             }
             clearCart();
-            showAlert('Order Placed Successfully!');
+            alert('Order Placed Successfully!');
             navigate('/dashboard');
         } catch (error) {
             console.error('Checkout failed', error);
-            showAlert('Checkout failed: ' + (error.response?.data?.message || error.message));
+            alert('Checkout failed: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const isAffordable = walletBalance >= cartTotal;
 
     // ─── Modal ─────────────────────────────────────────────────────────────
-    {showConfirm && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-accent/60 backdrop-blur-sm">
+    const CheckoutModal = () => {
+        if (!showConfirm) return null;
+        return (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-accent/60 backdrop-blur-sm">
                 <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                     <div className="bg-gradient-to-r from-indigo-600 to-indigo-600 p-6 text-white">
                         <h3 className="text-xl font-black">Confirm Your Order</h3>
@@ -124,13 +129,14 @@ const Cart = () => {
                         <button onClick={() => setShowConfirm(false)} className="flex-1 py-3 text-gray-500 font-bold bg-white border border-gray-200 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors">
                             Cancel
                         </button>
-                        <button onClick={confirmOrderPlacement} className="flex-1 py-3 text-white font-bold bg-green-500 hover:bg-green-600 shadow-md shadow-green-200 rounded-lg transition-all active:scale-[0.98]">
-                            Confirm Order ✓
+                        <button onClick={confirmOrderPlacement} disabled={isSubmitting} className="flex-1 py-3 text-white font-bold bg-green-500 hover:bg-green-600 shadow-md shadow-green-200 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait">
+                            {isSubmitting ? 'Processing...' : 'Confirm Order ✓'}
                         </button>
                     </div>
                 </div>
             </div>
-)}
+        );
+    };
 
     // ─── Empty state ───────────────────────────────────────────────────────
     if (cartItems.length === 0) {
@@ -153,7 +159,7 @@ const Cart = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-indigo-600/10 to-white">
-            
+            <CheckoutModal />
             
             {/* Page header */}
             <div className="bg-white border-b border-gray-200 shadow-sm">
