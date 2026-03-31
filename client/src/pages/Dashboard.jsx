@@ -849,7 +849,7 @@ function AdminSection({
 }
 
 // ─── AGENT SECTION ────────────────────────────────────────────────────────
-function AgentSection({ deliveries, handleStatusUpdate, isUpdating, user }) {
+function AgentSection({ deliveries, handleStatusUpdate, isUpdating }) {
     const [otpInputs, setOtpInputs] = useState({});
     const [paymentOrder, setPaymentOrder] = useState(null);
 
@@ -895,8 +895,9 @@ function AgentSection({ deliveries, handleStatusUpdate, isUpdating, user }) {
                                 {order.status === 'accepted' && (
                                     <div className="flex gap-2 border-t border-gray-200 pt-3">
                                         <button onClick={() => handleAcceptDelivery(order)}
-                                            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors w-full">
-                                            Accept Delivery <Truck className="w-5 h-5 shrink-0" />
+                                            disabled={isUpdating}
+                                            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white text-sm font-bold rounded-lg transition-colors w-full">
+                                            {isUpdating ? 'Processing...' : 'Accept Delivery'} <Truck className="w-5 h-5 shrink-0" />
                                         </button>
                                     </div>
                                 )}

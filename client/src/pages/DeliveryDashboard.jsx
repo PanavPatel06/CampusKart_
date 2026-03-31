@@ -42,8 +42,8 @@ const DeliveryDashboard = () => {
                 socket.emit('join_delivery', { userId: user._id, location: selectedLocation });
             }
 
-            setAvailableOrders([]);
             const fetchExisting = async () => {
+                setAvailableOrders([]);
                 try {
                     const res = await getAvailableOrders(selectedLocation);
                     setAvailableOrders(prev => {
