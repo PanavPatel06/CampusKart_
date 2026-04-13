@@ -9,6 +9,31 @@ import { Printer, UploadCloud, FileText, CheckCircle2, AlertCircle, RefreshCw, C
 
 function cn(...c) { return c.filter(Boolean).join(' '); }
 
+// Parse a page-range string like "All", "1-5", "2,4,6", "1-3, 7, 9-11"
+// into the actual number of pages that will be printed.
+function parsePageRange(rangeStr, totalPages) {
+    if (!totalPages || totalPages < 1) return 1;
+    const s = (rangeStr || '').trim().toLowerCase();
+    if (!s || s === 'all') return totalPages;
+    let count = 0;
+    const parts = s.split(',');
+    for (const part of parts) {
+        const t = part.trim();
+        if (t.includes('-')) {
+            const [a, b] = t.split('-').map(n => parseInt(n.trim()));
+            if (!isNaN(a) && !isNaN(b) && b >= a) {
+                const from = Math.max(1, a);
+                const to   = Math.min(totalPages, b);
+                if (to >= from) count += to - from + 1;
+            }
+        } else {
+            const n = parseInt(t);
+            if (!isNaN(n) && n >= 1 && n <= totalPages) count += 1;
+        }
+    }
+    return count > 0 ? count : 1;
+}
+
 const PrintOrder = () => {
     // ← identical state to original
     const navigate = useNavigate();
@@ -26,6 +51,7 @@ const PrintOrder = () => {
     const [walletBalance, setWalletBalance] = useState(0);
     const [printOptions,  setPrintOptions]  = useState({ color: 'bw', sided: 'single', pages: 1, pageRange: 'All', copies: 1 });
     const [pdfPageCount,  setPdfPageCount]  = useState(null); // auto-detected page count for PDFs
+    const [docTotalPages, setDocTotalPages] = useState(1);    // total pages in the document (source of truth)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -72,6 +98,8 @@ const PrintOrder = () => {
         setFileUrl('');
         setBlobUrl(null);
         setPdfPageCount(null);
+        setDocTotalPages(1);
+        setPrintOptions(prev => ({ ...prev, pageRange: 'All', pages: 1 }));
         // Auto-detect page count for PDF files
         if (chosen && chosen.name.toLowerCase().endsWith('.pdf')) {
             try {
@@ -80,11 +108,27 @@ const PrintOrder = () => {
                 const pdf = await PDFDocument.load(buf, { ignoreEncryption: true });
                 const count = pdf.getPageCount();
                 setPdfPageCount(count);
-                setPrintOptions(prev => ({ ...prev, pages: count }));
+                setDocTotalPages(count);
+                setPrintOptions(prev => ({ ...prev, pages: count, pageRange: 'All' }));
             } catch (err) {
                 console.warn('Could not auto-read PDF page count:', err);
             }
         }
+    };
+
+    // When the user types a page range, recompute how many pages will actually be printed
+    const handlePageRangeChange = (e) => {
+        const range = e.target.value;
+        const effective = parsePageRange(range, docTotalPages);
+        setPrintOptions(prev => ({ ...prev, pageRange: range, pages: effective }));
+    };
+
+    // When the user manually changes the doc-total-pages input (Word/PPT)
+    const handleDocTotalPagesChange = (e) => {
+        const total = parseInt(e.target.value) || 1;
+        setDocTotalPages(total);
+        const effective = parsePageRange(printOptions.pageRange, total);
+        setPrintOptions(prev => ({ ...prev, pages: effective }));
     };
 
     const handleUpload = async () => {
@@ -272,27 +316,28 @@ const PrintOrder = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-sm font-semibold text-gray-900">Pages to Print</label>
-                                <input type="text" placeholder="e.g. All, 1-5, 8" value={printOptions.pageRange}
-                                    onChange={(e) => setPrintOptions({ ...printOptions, pageRange: e.target.value })}
+                                <input type="text" placeholder="e.g. All, 1-5, 2,4,6" value={printOptions.pageRange}
+                                    onChange={handlePageRangeChange}
                                     className="w-full px-4 py-2.5 bg-gray-50/80 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 focus:bg-white transition-all"
                                 />
+                                <p className="text-[10px] text-gray-400">Use: All, 1-5, 2,4,6, 1-3,7</p>
                             </div>
                             <div className="flex flex-col gap-1.5">
                                 <label className="text-sm font-semibold text-gray-900">
-                                    Total Page Count
+                                    Doc Total Pages
                                     {pdfPageCount && <span className="ml-1.5 text-[10px] text-green-600 font-semibold bg-green-50 px-1.5 py-0.5 rounded-full">Auto-detected</span>}
                                 </label>
                                 <input type="number" min="1"
-                                    value={printOptions.pages}
+                                    value={docTotalPages}
                                     readOnly={!!pdfPageCount}
-                                    onChange={(e) => !pdfPageCount && setPrintOptions({ ...printOptions, pages: parseInt(e.target.value) || 1 })}
+                                    onChange={handleDocTotalPagesChange}
                                     className={cn(
                                         'w-full px-4 py-2.5 border rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all',
                                         pdfPageCount ? 'bg-green-50 border-green-200 text-green-800 cursor-not-allowed' : 'bg-gray-50/80 border-gray-200 focus:bg-white'
                                     )}
                                 />
                                 {!pdfPageCount && file && !file.name.toLowerCase().endsWith('.pdf') && (
-                                    <p className="text-[10px] text-amber-600 font-medium">Enter page count manually for Word/PPT</p>
+                                    <p className="text-[10px] text-amber-600 font-medium">Enter total pages for Word/PPT</p>
                                 )}
                             </div>
                             <StyledNumberInput label="Copies" value={printOptions.copies}
@@ -310,7 +355,7 @@ const PrintOrder = () => {
                                     ['Delivery',  deliveryLocation || '—'],
                                     ['Mode & sides', `${printOptions.color === 'color' ? '🌈 Color' : '⬛ B&W'} • ${printOptions.sided === 'single' ? 'Single Sided' : 'Double Sided'}`],
                                     ['Pages to Print', printOptions.pageRange],
-                                    ['Page Count × Copies', `${printOptions.pages} × ${printOptions.copies}`],
+                                    ['Effective Pages × Copies', `${printOptions.pages} × ${printOptions.copies} = ${printOptions.pages * printOptions.copies} sheets`],
                                 ].map(([k,v]) => (
                                     <div key={k} className="bg-gray-50/80 rounded-lg p-3">
                                         <p className="text-xs text-gray-500 font-medium mb-0.5">{k}</p>
