@@ -49,6 +49,7 @@ const PrintOrder = () => {
     const [locations,     setLocations]     = useState([]);
     const [deliveryLocation, setDeliveryLocation] = useState('');
     const [walletBalance, setWalletBalance] = useState(0);
+    const [submitting,     setSubmitting]     = useState(false);
     const [printOptions,  setPrintOptions]  = useState({ color: 'bw', sided: 'single', pages: 1, pageRange: 'All', copies: 1 });
     const [pdfPageCount,  setPdfPageCount]  = useState(null); // auto-detected page count for PDFs
     const [docTotalPages, setDocTotalPages] = useState(1);    // total pages in the document (source of truth)
@@ -163,25 +164,41 @@ const PrintOrder = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!fileUrl)           { alert('Please upload a file first'); return; }
-        if (!vendorId)          { alert('Please select a vendor'); return; }
-        if (!deliveryLocation)  { alert('Please select a delivery location'); return; }
+        
+        // Robust Validation
+        if (!file)              { alert('Please select a document to upload.'); return; }
+        if (!fileUrl)           { alert('Please click the "Upload File" button first to process your document.'); return; }
+        if (!vendorId)          { alert('Please select a print vendor.'); return; }
+        if (!deliveryLocation)  { alert('Please select a delivery location.'); return; }
+        
         if (walletBalance < estimatedCost) {
-            alert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${estimatedCost}`);
+            alert(`Insufficient Wallet Balance (₹${walletBalance}). Total Required: ₹${estimatedCost}. Please contact admin for recharge.`);
             return;
         }
+
         const orderData = {
-            orderItems: [{ name: 'Print Job - ' + file.name, price: pricePerSheet, qty: printOptions.copies, fileUrl, printOptions }],
+            orderItems: [{ 
+                name: 'Print Job - ' + (file?.name || 'Document'), 
+                price: pricePerSheet, 
+                qty: printOptions.copies, 
+                fileUrl, 
+                printOptions 
+            }],
             totalPrice: estimatedCost,
             vendorId,
             deliveryLocation,
         };
+
         try {
+            setSubmitting(true);
             await createOrder(orderData);
             setOrderSuccess(true);
             setTimeout(() => navigate('/dashboard'), 2000);
         } catch (error) {
+            console.error('Submit Error:', error);
             alert('Order failed: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -382,9 +399,10 @@ const PrintOrder = () => {
                             </div>
 
                             <button type="submit"
-                                disabled={!fileUrl || !vendorId || !deliveryLocation}
-                                className="w-full py-3.5 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] font-bold text-base rounded-lg shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2">
-                                Place Print Order →
+                                disabled={submitting}
+                                className="w-full py-3.5 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] font-bold text-base rounded-lg shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2 flex items-center justify-center gap-2">
+                                {submitting && <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                                {submitting ? 'Processing...' : 'Place Print Order →'}
                             </button>
                         </div>
                     </Section>
