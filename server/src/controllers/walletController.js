@@ -83,17 +83,64 @@ const getSystemEarnings = async (req, res) => {
 };
 
 // @desc    Get admin analytics (Admin)
-// @route   GET /api/wallet/analytics
+// @route   GET /api/admin/analytics
 // @access  Private (Admin)
 const getAdminAnalytics = async (req, res) => {
-    const { type } = req.query; // weekly, monthly, yearly
-    
-    let days = 7;
-    if (type === 'monthly') days = 30;
-    if (type === 'yearly') days = 365;
+    const { type } = req.query; // daily, weekly, monthly, yearly
 
+    const now = new Date();
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
+    let groupId;
+
+    switch (type) {
+        case 'daily':
+            // Last 24 hours — group by hour ("08", "09", ...)
+            startDate.setHours(now.getHours() - 23, 0, 0, 0);
+            groupId = { $dateToString: { format: '%H', date: '$createdAt' } };
+            break;
+
+        case 'monthly':
+            // Last 30 days — group by week within that period ("Week 1" ... "Week 4")
+            startDate.setDate(now.getDate() - 29);
+            startDate.setHours(0, 0, 0, 0);
+            groupId = {
+                $concat: [
+                    'Week ',
+                    {
+                        $toString: {
+                            $add: [
+                                1,
+                                {
+                                    $floor: {
+                                        $divide: [
+                                            { $divide: [{ $subtract: ['$createdAt', startDate] }, 86400000] },
+                                            7
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            };
+            break;
+
+        case 'yearly':
+            // Last 12 months — group by month ("2026-04")
+            startDate.setFullYear(now.getFullYear() - 1);
+            startDate.setDate(1);
+            startDate.setHours(0, 0, 0, 0);
+            groupId = { $dateToString: { format: '%Y-%m', date: '$createdAt' } };
+            break;
+
+        case 'weekly':
+        default:
+            // Last 7 days — group by date ("2026-04-07")
+            startDate.setDate(now.getDate() - 6);
+            startDate.setHours(0, 0, 0, 0);
+            groupId = { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } };
+            break;
+    }
 
     try {
         const stats = await Order.aggregate([
@@ -105,16 +152,14 @@ const getAdminAnalytics = async (req, res) => {
             },
             {
                 $group: {
-                    _id: {
-                        $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-                    },
-                    revenue: { $sum: "$totalAmount" },
-                    commission: { $sum: "$commission.company" },
-                    deliveryProfit: { $sum: "$commission.delivery" },
-                    orderCount: { $sum: 1 }
+                    _id: groupId,
+                    revenue:       { $sum: '$totalAmount' },
+                    commission:    { $sum: '$commission.company' },
+                    deliveryProfit:{ $sum: '$commission.delivery' },
+                    orderCount:    { $sum: 1 }
                 }
             },
-            { $sort: { "_id": 1 } }
+            { $sort: { '_id': 1 } }
         ]);
 
         res.json(stats);

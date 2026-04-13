@@ -25,6 +25,7 @@ const PrintOrder = () => {
     const [deliveryLocation, setDeliveryLocation] = useState('');
     const [walletBalance, setWalletBalance] = useState(0);
     const [printOptions,  setPrintOptions]  = useState({ color: 'bw', sided: 'single', pages: 1, pageRange: 'All', copies: 1 });
+    const [pdfPageCount,  setPdfPageCount]  = useState(null); // auto-detected page count for PDFs
 
     useEffect(() => {
         const fetchData = async () => {
@@ -65,10 +66,25 @@ const PrintOrder = () => {
         }
     }, [fileUrl, file]);
 
-    const handleFileChange = (e) => { 
-        setFile(e.target.files[0]);
+    const handleFileChange = async (e) => { 
+        const chosen = e.target.files[0];
+        setFile(chosen);
         setFileUrl('');
         setBlobUrl(null);
+        setPdfPageCount(null);
+        // Auto-detect page count for PDF files
+        if (chosen && chosen.name.toLowerCase().endsWith('.pdf')) {
+            try {
+                const { PDFDocument } = await import('pdf-lib');
+                const buf = await chosen.arrayBuffer();
+                const pdf = await PDFDocument.load(buf, { ignoreEncryption: true });
+                const count = pdf.getPageCount();
+                setPdfPageCount(count);
+                setPrintOptions(prev => ({ ...prev, pages: count }));
+            } catch (err) {
+                console.warn('Could not auto-read PDF page count:', err);
+            }
+        }
     };
 
     const handleUpload = async () => {
@@ -168,16 +184,16 @@ const PrintOrder = () => {
                     </Section>
 
                     {/* File Upload */}
-                    <Section title="Upload PDF" number={2}>
+                    <Section title="Upload Document" number={2}>
                         <label className={cn(
                             'flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200',
                             fileUrl ? 'border-green-400 bg-green-50' : 'border-gray-300 bg-gray-50/80 hover:border-indigo-600 hover:bg-indigo-600/10'
                         )}>
-                            <input type="file" accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" onChange={handleFileChange} className="sr-only" />
+                            <input type="file" accept="application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain" onChange={handleFileChange} className="sr-only" />
                             <span className="text-4xl">{fileUrl ? <CheckCircle2 className="w-10 h-10 text-green-500 shrink-0" /> : '📄'}</span>
                             <div className="text-center">
-                                <p className="font-semibold text-sm text-gray-900">{fileUrl ? file?.name : (file ? file.name : 'Click to select PDF')}</p>
-                                <p className="text-xs text-gray-500 mt-0.5">{fileUrl ? 'Uploaded & ready' : 'PDF only, max 100MB'}</p>
+                                <p className="font-semibold text-sm text-gray-900">{fileUrl ? file?.name : (file ? file.name : 'Click to select a document')}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">{fileUrl ? 'Uploaded & ready' : 'PDF, Word, PowerPoint — max 100MB'}</p>
                             </div>
                         </label>
                         {fileUrl && (
@@ -261,8 +277,24 @@ const PrintOrder = () => {
                                     className="w-full px-4 py-2.5 bg-gray-50/80 border border-gray-200 rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 focus:bg-white transition-all"
                                 />
                             </div>
-                            <StyledNumberInput label="Total Page Count" value={printOptions.pages}
-                                onChange={(e) => setPrintOptions({ ...printOptions, pages: parseInt(e.target.value) || 1 })} />
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-sm font-semibold text-gray-900">
+                                    Total Page Count
+                                    {pdfPageCount && <span className="ml-1.5 text-[10px] text-green-600 font-semibold bg-green-50 px-1.5 py-0.5 rounded-full">Auto-detected</span>}
+                                </label>
+                                <input type="number" min="1"
+                                    value={printOptions.pages}
+                                    readOnly={!!pdfPageCount}
+                                    onChange={(e) => !pdfPageCount && setPrintOptions({ ...printOptions, pages: parseInt(e.target.value) || 1 })}
+                                    className={cn(
+                                        'w-full px-4 py-2.5 border rounded-lg text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-indigo-600 transition-all',
+                                        pdfPageCount ? 'bg-green-50 border-green-200 text-green-800 cursor-not-allowed' : 'bg-gray-50/80 border-gray-200 focus:bg-white'
+                                    )}
+                                />
+                                {!pdfPageCount && file && !file.name.toLowerCase().endsWith('.pdf') && (
+                                    <p className="text-[10px] text-amber-600 font-medium">Enter page count manually for Word/PPT</p>
+                                )}
+                            </div>
                             <StyledNumberInput label="Copies" value={printOptions.copies}
                                 onChange={(e) => setPrintOptions({ ...printOptions, copies: parseInt(e.target.value) || 1 })} />
                         </div>

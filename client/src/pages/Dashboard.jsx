@@ -20,7 +20,8 @@ import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { BarChart2, ShoppingBag, Search, AlertCircle, Wallet, PackageSearch, ShieldCheck, MapPin, Package, TrendingUp, CheckCircle2, Settings, Hourglass, Printer, Truck, UserCircle, Users, Trash2, FileBarChart } from 'lucide-react';
 
-const socket = io('http://localhost:5000');
+const SOCKET_URL = import.meta.env.DEV ? 'http://localhost:5001' : 'https://campuskart-hadi-vl28.onrender.com';
+const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 const ROLE_LABEL = {
@@ -563,7 +564,7 @@ function AdminSection({
         { id: 'earnings',  label: 'Analytics',   icon: <TrendingUp className="w-5 h-5 shrink-0" /> },
         { id: 'users',     label: 'Users',       icon: <Users className="w-5 h-5 shrink-0" /> },
         { id: 'reports',   label: 'Reports',     icon: <FileBarChart className="w-5 h-5 shrink-0" /> },
-        { id: 'approvals', label: 'Approvals',   icon: <ShieldCheck className="w-5 h-5 shrink-0" /> },
+        { id: 'approvals', label: 'Approvals',   icon: <ShieldCheck className="w-5 h-5 shrink-0" />, badge: pendingUsers.length },
         { id: 'settings',  label: 'Settings',    icon: <Settings className="w-5 h-5 shrink-0" /> },
     ];
     const [newLocation, setNewLocation] = useState('');
@@ -582,11 +583,16 @@ function AdminSection({
                 {tabs.map(tab => (
                     <button key={tab.id} onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                            'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200',
+                            'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all duration-200 relative',
                             activeTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-900'
                         )}>
                         <span>{tab.icon}</span>
                         <span className="hidden sm:inline">{tab.label}</span>
+                        {tab.badge > 0 && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                                {tab.badge}
+                            </span>
+                        )}
                     </button>
                 ))}
             </div>
@@ -638,23 +644,39 @@ function AdminSection({
             )}
 
             {/* ── Tracking / Analytics Tab ── */}
-            {activeTab === 'earnings' && (
+            {activeTab === 'earnings' && (() => {
+                // X-axis label formatter per period
+                const fmtTick = (val) => {
+                    if (analyticsType === 'daily')   return val + 'h';     // "08" → "08h"
+                    if (analyticsType === 'weekly') {
+                        const d = new Date(val);
+                        return d.toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }); // "Mon, Apr 7"
+                    }
+                    if (analyticsType === 'monthly') return val;           // "Week 1"
+                    if (analyticsType === 'yearly') {
+                        const [y, m] = val.split('-');
+                        return new Date(y, m - 1).toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }); // "Apr '25"
+                    }
+                    return val;
+                };
+                const useBar = analyticsType === 'daily' || analyticsType === 'monthly';
+                return (
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Card className="md:col-span-2">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="font-bold text-gray-900">Revenue Growth</h3>
                                 <div className="flex bg-gray-50/80 p-1 rounded-lg border border-gray-200">
-                                    {['weekly', 'monthly', 'yearly'].map(t => (
+                                    {['daily', 'weekly', 'monthly', 'yearly'].map(t => (
                                         <button key={t} onClick={() => setAnalyticsType(t)}
                                             className={cn('px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest transition-all',
-                                                analyticsType === t ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-500')}>
+                                                analyticsType === t ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-900')}>
                                             {t}
                                         </button>
                                     ))}
                                 </div>
                             </div>
-                            
+
                             <div className="h-[300px] w-full mt-4">
                                 {loadingAnalytics ? (
                                     <div className="h-full flex items-center justify-center">
@@ -662,16 +684,29 @@ function AdminSection({
                                     </div>
                                 ) : analyticsData.length > 0 ? (
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={analyticsData}>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                            <XAxis dataKey="_id" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
-                                            <Tooltip 
-                                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
-                                                cursor={{ fill: 'transparent' }}
-                                            />
-                                            <Line type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                                        </LineChart>
+                                        {useBar ? (
+                                            <BarChart data={analyticsData} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                                <XAxis dataKey="_id" tickFormatter={fmtTick} axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 'bold'}} interval={0} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                                                <Tooltip formatter={(v) => [`₹${v}`, 'Revenue']} labelFormatter={fmtTick}
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 20px rgba(0,0,0,0.1)' }} />
+                                                <Bar dataKey="revenue" radius={[6,6,0,0]}>
+                                                    {analyticsData.map((_, i) => (
+                                                        <Cell key={i} fill={`hsl(${237 - i * 8}, 75%, ${58 + i * 2}%)`} />
+                                                    ))}
+                                                </Bar>
+                                            </BarChart>
+                                        ) : (
+                                            <LineChart data={analyticsData}>
+                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                                                <XAxis dataKey="_id" tickFormatter={fmtTick} axisLine={false} tickLine={false} tick={{fontSize: 9, fontWeight: 'bold'}} interval={0} />
+                                                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
+                                                <Tooltip formatter={(v) => [`₹${v}`, 'Revenue']} labelFormatter={fmtTick}
+                                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 20px rgba(0,0,0,0.1)' }} />
+                                                <Line type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4, fill: '#4f46e5', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                                            </LineChart>
+                                        )}
                                     </ResponsiveContainer>
                                 ) : (
                                     <div className="h-full flex items-center justify-center text-gray-500 text-sm font-medium">
@@ -729,7 +764,8 @@ function AdminSection({
                         </div>
                     </Card>
                 </div>
-            )}
+                );
+            })()}
 
             {/* ── Wallet tab ── */}
             {activeTab === 'wallet' && (
@@ -830,7 +866,14 @@ function AdminSection({
             {/* ── Approvals tab ── */}
             {activeTab === 'approvals' && (
                 <Card>
-                    <h3 className="font-bold text-gray-900 mb-5">Pending User Registrations</h3>
+                    <div className="flex items-center justify-between mb-5">
+                        <h3 className="font-bold text-gray-900">Pending Registrations</h3>
+                        {pendingUsers.length > 0 && (
+                            <span className="bg-red-100 text-red-700 text-xs font-black px-2.5 py-1 rounded-full">
+                                {pendingUsers.length} pending
+                            </span>
+                        )}
+                    </div>
                     {pendingUsers.length === 0 ? (
                         <p className="text-center py-10 text-gray-500 text-sm">No pending registrations</p>
                     ) : (
@@ -922,25 +965,72 @@ function AdminSection({
             {/* ── Reports Tab ── */}
             {activeTab === 'reports' && (
                 <div className="space-y-5">
-                    <div className="flex gap-2">
-                        {[['allTime', 'All Time'], ['monthly', 'Monthly'], ['weekly', 'Weekly']].map(([key, label]) => (
-                            <button key={key} onClick={() => setReportPeriod(key)}
-                                className={cn('px-4 py-2 rounded-lg text-sm font-bold transition-all',
-                                    reportPeriod === key ? 'bg-indigo-600 text-white shadow' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
-                                )}>
-                                {label}
-                            </button>
-                        ))}
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex gap-2">
+                            {[['allTime', 'All Time'], ['monthly', 'Last 30 Days'], ['weekly', 'Last 7 Days']].map(([key, label]) => (
+                                <button key={key} onClick={() => setReportPeriod(key)}
+                                    className={cn('px-4 py-2 rounded-lg text-sm font-bold transition-all',
+                                        reportPeriod === key ? 'bg-indigo-600 text-white shadow' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                    )}>
+                                    {label}
+                                </button>
+                            ))}
+                        </div>
+                        {report && (
+                            <div className="flex gap-2">
+                                <button onClick={async () => {
+                                    const XLSX = await import('xlsx');
+                                    const periodLabel = reportPeriod === 'allTime' ? 'All Time' : reportPeriod === 'monthly' ? 'Last 30 Days' : 'Last 7 Days';
+                                    const rows = [['Metric', periodLabel]];
+                                    rows.push(['Orders Delivered', report[reportPeriod]?.totalOrders ?? 0]);
+                                    rows.push(['Total Sales (₹)', (report[reportPeriod]?.totalSales ?? 0).toFixed(2)]);
+                                    rows.push(['Net Revenue (₹)',  (report[reportPeriod]?.netRevenue ?? 0).toFixed(2)]);
+                                    rows.push(['Total Commission (₹)', (report[reportPeriod]?.totalCommission ?? 0).toFixed(2)]);
+                                    const ws = XLSX.utils.aoa_to_sheet(rows);
+                                    const wb = XLSX.utils.book_new();
+                                    XLSX.utils.book_append_sheet(wb, ws, 'CampusKart Report');
+                                    XLSX.writeFile(wb, `CampusKart_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+                                }} className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg transition-all shadow-sm">
+                                    📊 Excel
+                                </button>
+                                <button onClick={async () => {
+                                    const { default: jsPDF } = await import('jspdf');
+                                    const { default: autoTable } = await import('jspdf-autotable');
+                                    const doc = new jsPDF();
+                                    doc.setFontSize(18); doc.setTextColor(79, 70, 229);
+                                    doc.text('CampusKart Analytics Report', 14, 22);
+                                    doc.setFontSize(10); doc.setTextColor(100, 100, 100);
+                                    doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')}`, 14, 30);
+                                    const periodLabel = reportPeriod === 'allTime' ? 'All Time' : reportPeriod === 'monthly' ? 'Last 30 Days' : 'Last 7 Days';
+                                    autoTable(doc, {
+                                        startY: 38,
+                                        head: [['Metric', periodLabel]],
+                                        body: [
+                                            ['Orders Delivered', report[reportPeriod]?.totalOrders ?? 0],
+                                            ['Total Sales (₹)',  `₹${(report[reportPeriod]?.totalSales ?? 0).toFixed(2)}`],
+                                            ['Net Revenue (₹)',  `₹${(report[reportPeriod]?.netRevenue ?? 0).toFixed(2)}`],
+                                            ['Total Commission (₹)', `₹${(report[reportPeriod]?.totalCommission ?? 0).toFixed(2)}`],
+                                        ],
+                                        headStyles: { fillColor: [79, 70, 229], fontStyle: 'bold' },
+                                        styles: { fontSize: 11, cellPadding: 6 },
+                                        alternateRowStyles: { fillColor: [245, 245, 255] },
+                                    });
+                                    doc.save(`CampusKart_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+                                }} className="flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold rounded-lg transition-all shadow-sm">
+                                    📄 PDF
+                                </button>
+                            </div>
+                        )}
                     </div>
                     {loadingReport ? (
                         <div className="flex justify-center py-10"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>
                     ) : report ? (
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                             {[
-                                { label: 'Orders Delivered', value: report[reportPeriod]?.totalOrders ?? 0, accent: 'orange', icon: <Package className="w-5 h-5" /> },
-                                { label: 'Total Sales',      value: `₹${(report[reportPeriod]?.totalSales ?? 0).toFixed(0)}`, accent: 'purple', icon: <Wallet className="w-5 h-5" /> },
-                                { label: 'Net Revenue',      value: `₹${(report[reportPeriod]?.netRevenue ?? 0).toFixed(0)}`, accent: 'blue', icon: <BarChart2 className="w-5 h-5" /> },
-                                { label: 'Total Commission', value: `₹${(report[reportPeriod]?.totalCommission ?? 0).toFixed(0)}`, accent: 'green', icon: <TrendingUp className="w-5 h-5" /> },
+                                { label: 'Orders Delivered', value: report[reportPeriod]?.totalOrders ?? 0,                               accent: 'orange', icon: <Package className="w-5 h-5" /> },
+                                { label: 'Total Sales',      value: `₹${(report[reportPeriod]?.totalSales ?? 0).toFixed(0)}`,      accent: 'purple', icon: <Wallet className="w-5 h-5" /> },
+                                { label: 'Net Revenue',      value: `₹${(report[reportPeriod]?.netRevenue ?? 0).toFixed(0)}`,      accent: 'blue',   icon: <BarChart2 className="w-5 h-5" /> },
+                                { label: 'Total Commission', value: `₹${(report[reportPeriod]?.totalCommission ?? 0).toFixed(0)}`, accent: 'green',  icon: <TrendingUp className="w-5 h-5" /> },
                             ].map(s => <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} accent={s.accent} />)}
                         </div>
                     ) : (
