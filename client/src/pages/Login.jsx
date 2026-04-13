@@ -104,7 +104,7 @@ const Login = () => {
                         <button
                             type="submit"
                             disabled={loading || !email || !password}
-                            className="w-full flex items-center justify-center gap-2 py-3 px-6 mt-2 bg-indigo-600 text-white hover:bg-indigo-600 text-white active:scale-[0.98] text-white font-semibold rounded-lg shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
+                            className="w-full flex items-center justify-center gap-2 py-3 px-6 mt-2 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] font-semibold rounded-lg shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
                         >
                             {loading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                             {loading ? 'Signing in…' : 'Sign In'}
@@ -120,7 +120,7 @@ const Login = () => {
 
                     <p className="text-center text-sm text-gray-500">
                         Don't have an account?{' '}
-                        <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-600 transition-colors">
+                        <Link to="/register" className="font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
                             Create one free
                         </Link>
                     </p>

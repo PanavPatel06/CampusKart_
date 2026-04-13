@@ -308,7 +308,7 @@ const getAvailableDeliveryOrders = async (req, res) => {
         };
 
         if (location !== 'All') {
-            query.deliveryLocation = location;
+            query.deliveryLocation = { $regex: new RegExp(`^${location.trim()}$`, 'i') };
         }
 
         const orders = await Order.find(query)

@@ -57,7 +57,7 @@ function ProductCard({ product, onAddToCart, justAdded, userRole }) {
                             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 ${
                                 justAdded
                                     ? 'bg-green-500 text-white shadow-sm'
-                                    : 'bg-indigo-600 text-white hover:bg-indigo-600 text-white shadow-md shadow-indigo-500/20 hover:shadow-lg active:scale-95'
+                                    : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-md shadow-indigo-500/20 hover:shadow-lg active:scale-95'
                             }`}
                         >
                             {justAdded ? '✓ Added' : '+ Cart'}

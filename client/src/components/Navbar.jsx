@@ -148,11 +148,11 @@ const Navbar = () => {
                             ) : (
                                 <div className="flex items-center gap-2">
                                     <Link to="/login"
-                                        className="px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-accent hover:text-accent-foreground rounded-lg transition-colors">
+                                        className="px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors">
                                         Sign In
                                     </Link>
                                     <Link to="/register"
-                                        className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-600 text-white rounded-lg transition-colors shadow-sm">
+                                        className="px-4 py-2 text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] rounded-lg transition-all shadow-sm">
                                         Register
                                     </Link>
                                 </div>

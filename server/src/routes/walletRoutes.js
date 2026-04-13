@@ -6,7 +6,8 @@ const {
     getSystemEarnings,
     getCommissionRates,
     updateCommissionRates,
-    getUsersForWallet
+    getUsersForWallet,
+    getAdminReport,
 } = require('../controllers/walletController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
@@ -15,5 +16,6 @@ router.route('/my-wallet').get(protect, getWallet);
 router.route('/earnings').get(protect, admin, getSystemEarnings);
 router.route('/commission').get(protect, getCommissionRates).put(protect, admin, updateCommissionRates);
 router.route('/users').get(protect, admin, getUsersForWallet);
+router.route('/report').get(protect, admin, getAdminReport);
 
 module.exports = router;

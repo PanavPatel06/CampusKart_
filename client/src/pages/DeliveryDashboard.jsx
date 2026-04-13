@@ -20,7 +20,7 @@ const DeliveryDashboard = () => {
     const [availableOrders,  setAvailableOrders]  = useState([]);
     const [selectedLocation, setSelectedLocation] = useState('All');
     const [locations,        setLocations]        = useState([]);
-    const [isConnected,      setIsConnected]      = useState(socket.connected);
+    const [connectionStatus, setConnectionStatus] = useState(socket.connected ? 'connected' : 'disconnected');
     const [alertConfig,      setAlertConfig]      = useState({ isOpen: false, message: '', type: 'error' });
 
     const showAlert = (message, type = 'error') => setAlertConfig({ isOpen: true, message, type });
@@ -33,9 +33,11 @@ const DeliveryDashboard = () => {
 
     useEffect(() => {
         // socket connection handlers
-        socket.on('connect',       () => { console.log('Socket Connected:', socket.id); setIsConnected(true); });
-        socket.on('disconnect',    () => { console.log('Socket Disconnected'); setIsConnected(false); });
-        socket.on('connect_error', (err) => { console.error('Socket Connection Error:', err); setIsConnected(false); });
+        socket.on('connect',           () => { console.log('Socket Connected:', socket.id); setConnectionStatus('connected'); });
+        socket.on('disconnect',        () => { console.log('Socket Disconnected'); setConnectionStatus('disconnected'); });
+        socket.on('connect_error',     (err) => { console.error('Socket Connection Error:', err); setConnectionStatus('disconnected'); });
+        socket.on('reconnect_attempt', () => { setConnectionStatus('reconnecting'); });
+        socket.on('reconnect',         () => { setConnectionStatus('connected'); });
 
         if (user && selectedLocation) {
             if (selectedLocation === 'All') {
@@ -86,6 +88,9 @@ const DeliveryDashboard = () => {
             socket.off('new_delivery_request');
             socket.off('connect');
             socket.off('connect_error');
+            socket.off('disconnect');
+            socket.off('reconnect_attempt');
+            socket.off('reconnect');
         };
     }, [user, selectedLocation, locations]);
 
@@ -113,10 +118,18 @@ const DeliveryDashboard = () => {
                     {/* Connection pill */}
                     <div className={cn(
                         'flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold',
-                        isConnected ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        connectionStatus === 'connected'    ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                        connectionStatus === 'reconnecting' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                                                             'bg-red-500/20 text-red-400 border border-red-500/30'
                     )}>
-                        <span className={cn('w-2 h-2 rounded-full shrink-0', isConnected ? 'bg-green-400' : 'bg-red-400')} />
-                        {isConnected ? 'Connected' : 'Disconnected'}
+                        <span className={cn('w-2 h-2 rounded-full shrink-0',
+                            connectionStatus === 'connected'    ? 'bg-green-400' :
+                            connectionStatus === 'reconnecting' ? 'bg-amber-400 animate-pulse' :
+                                                                 'bg-red-400'
+                        )} />
+                        {connectionStatus === 'connected'    ? 'Connected' :
+                         connectionStatus === 'reconnecting' ? 'Reconnecting…' :
+                                                              'Disconnected'}
                     </div>
                 </div>
             </div>
@@ -138,9 +151,15 @@ const DeliveryDashboard = () => {
                     </div>
                 </div>
 
-                {!isConnected && (
-                    <div className="flex items-center gap-2 text-amber-400 text-xs font-semibold bg-amber-400/10 px-4 py-2 rounded-lg border border-amber-400/20">
-                        <AlertTriangle className="w-5 h-5 shrink-0" /> Socket disconnected — check your network
+                {connectionStatus !== 'connected' && (
+                    <div className={cn(
+                        'flex items-center gap-2 text-xs font-semibold px-4 py-2 rounded-lg border',
+                        connectionStatus === 'reconnecting'
+                            ? 'text-amber-400 bg-amber-400/10 border-amber-400/20'
+                            : 'text-red-400 bg-red-400/10 border-red-400/20'
+                    )}>
+                        <AlertTriangle className="w-5 h-5 shrink-0" />
+                        {connectionStatus === 'reconnecting' ? 'Reconnecting to server…' : 'Socket disconnected — check your network'}
                     </div>
                 )}
 
@@ -186,7 +205,7 @@ const DeliveryDashboard = () => {
                                         </div>
 
                                         <button onClick={() => handleAcceptOrder(order._id)}
-                                            className="w-full py-3 bg-indigo-600 text-white hover:bg-indigo-600 text-white active:scale-[0.98] text-white font-bold rounded-lg transition-all shadow-md shadow-indigo-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600">
+                                            className="w-full py-3 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] font-bold rounded-lg transition-all shadow-md shadow-indigo-500/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600">
                                             Request Delivery →
                                         </button>
                                     </div>

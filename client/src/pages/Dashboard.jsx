@@ -10,6 +10,7 @@ import {
     clearMyOrders, getPendingUsers, approveUser, rejectUser,
     getAdminAnalytics, resetSystem, searchUsers,
     addFunds, getSystemEarnings, getCommissionRates,
+    getAllUsers, deleteUser, getAdminReport,
 } from '../services/api';
 import { 
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -17,7 +18,7 @@ import {
 } from 'recharts';
 import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import { BarChart as LucideBarChart, ShoppingBag, Search, AlertCircle, Wallet, PackageSearch, ShieldCheck, MapPin, Package, TrendingUp, CheckCircle2, Settings, Hourglass, Printer, Truck, UserCircle } from 'lucide-react';
+import { BarChart2, ShoppingBag, Search, AlertCircle, Wallet, PackageSearch, ShieldCheck, MapPin, Package, TrendingUp, CheckCircle2, Settings, Hourglass, Printer, Truck, UserCircle, Users, Trash2, FileBarChart } from 'lucide-react';
 
 const socket = io('http://localhost:5000');
 
@@ -111,7 +112,7 @@ function UserSection({ orders, deliveries, userWalletBalance, handleStatusUpdate
             <Card>
                 <SectionTitle>Quick Actions</SectionTitle>
                 <div className="flex flex-wrap gap-3">
-                    <a href="/products"    className="inline-flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-600 text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"><ShoppingBag className="w-5 h-5 shrink-0" /> Browse Products</a>
+                    <a href="/products"    className="inline-flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] text-sm font-semibold px-5 py-2.5 rounded-lg transition-all shadow-sm"><ShoppingBag className="w-5 h-5 shrink-0" /> Browse Products</a>
                     <a href="/print-order" className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50/80 text-gray-900 text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors shadow-sm"><Printer className="w-5 h-5 shrink-0" /> New Print Order</a>
                 </div>
             </Card>
@@ -280,7 +281,7 @@ function VendorSection({
             <Card>
                 <div className="flex items-center justify-between mb-5">
                     <SectionTitle>Manage Products</SectionTitle>
-                    <Link to="/add-product" className="inline-flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm">
+                    <Link to="/add-product" className="inline-flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] text-sm font-semibold px-4 py-2 rounded-lg transition-all shadow-sm">
                         + Add Product
                     </Link>
                 </div>
@@ -324,7 +325,7 @@ function VendorSection({
                         if (!newLocation.trim()) return;
                         try { await addLocation(newLocation.trim()); setNewLocation(''); fetchLocations(); }
                         catch (e) { alert(e.message); }
-                    }} className="px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">
+                    }} className="px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] text-sm font-bold rounded-lg transition-all shadow-sm">
                         + Add
                     </button>
                 </div>
@@ -444,6 +445,14 @@ function AdminSection({
     const [analyticsData, setAnalyticsData] = useState([]);
     const [analyticsType, setAnalyticsType] = useState('weekly');
     const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+    // Users tab state
+    const [allUsers, setAllUsers] = useState([]);
+    const [userSearch, setUserSearch] = useState('');
+    const [loadingUsers, setLoadingUsers] = useState(false);
+    // Reports tab state
+    const [report, setReport] = useState(null);
+    const [reportPeriod, setReportPeriod] = useState('allTime');
+    const [loadingReport, setLoadingReport] = useState(false);
 
     const fetchPendingUsers = async () => {
         try {
@@ -466,6 +475,34 @@ function AdminSection({
         }
     };
 
+    const fetchAllUsers = async (search = '') => {
+        setLoadingUsers(true);
+        try {
+            const { data } = await getAllUsers(search);
+            setAllUsers(data);
+        } catch (e) { console.error('Failed to fetch users', e); }
+        finally { setLoadingUsers(false); }
+    };
+
+    const handleDeleteUser = async (id) => {
+        if (!window.confirm('Are you sure you want to permanently delete this user? If they are a vendor, their products will also be removed.')) return;
+        try {
+            await deleteUser(id);
+            setAllUsers(prev => prev.filter(u => u._id !== id));
+        } catch (e) {
+            alert('Failed to delete user: ' + (e.response?.data?.message || e.message));
+        }
+    };
+
+    const fetchReport = async () => {
+        setLoadingReport(true);
+        try {
+            const { data } = await getAdminReport();
+            setReport(data);
+        } catch (e) { console.error('Failed to fetch report', e); }
+        finally { setLoadingReport(false); }
+    };
+
     useEffect(() => {
         fetchPendingUsers();
     }, []);
@@ -473,6 +510,12 @@ function AdminSection({
     useEffect(() => {
         if (activeTab === 'earnings') {
             fetchAnalytics(analyticsType);
+        }
+        if (activeTab === 'users') {
+            fetchAllUsers();
+        }
+        if (activeTab === 'reports') {
+            fetchReport();
         }
     }, [activeTab, analyticsType]);
 
@@ -518,6 +561,8 @@ function AdminSection({
         { id: 'wallet',    label: 'Wallet',      icon: <Wallet className="w-5 h-5 shrink-0" /> },
         { id: 'locations', label: 'Locations',   icon: <MapPin className="w-5 h-5 shrink-0" /> },
         { id: 'earnings',  label: 'Analytics',   icon: <TrendingUp className="w-5 h-5 shrink-0" /> },
+        { id: 'users',     label: 'Users',       icon: <Users className="w-5 h-5 shrink-0" /> },
+        { id: 'reports',   label: 'Reports',     icon: <FileBarChart className="w-5 h-5 shrink-0" /> },
         { id: 'approvals', label: 'Approvals',   icon: <ShieldCheck className="w-5 h-5 shrink-0" /> },
         { id: 'settings',  label: 'Settings',    icon: <Settings className="w-5 h-5 shrink-0" /> },
     ];
@@ -528,7 +573,7 @@ function AdminSection({
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <StatCard label="Total Orders"  value={orders.length} icon={<Package className="w-5 h-5 shrink-0" />} accent="orange" />
                 <StatCard label="Delivered"      value={orders.filter(o => o.status === 'delivered').length} icon={<CheckCircle2 className="w-5 h-5 shrink-0" />} accent="green" />
-                <StatCard label="Net Revenue"        value={systemEarnings ? `₹${systemEarnings.totalCompanyEarnings?.toFixed(0)}` : '—'} icon={<BarChart className="w-5 h-5 shrink-0" />} accent="blue" />
+                <StatCard label="Net Revenue"        value={systemEarnings ? `₹${systemEarnings.totalCompanyEarnings?.toFixed(0)}` : '—'} icon={<BarChart2 className="w-5 h-5 shrink-0" />} accent="blue" />
                 <StatCard label="Total Sales"      value={systemEarnings ? `₹${systemEarnings.totalSales?.toFixed(0)}` : '—'} icon={<Wallet className="w-5 h-5 shrink-0" />} accent="purple" />
             </div>
 
@@ -637,8 +682,8 @@ function AdminSection({
                         </Card>
                         
                         <div className="space-y-4">
-                            <Card className="bg-gradient-to-br from-indigo-600 to-indigo-600 text-white border-none shadow-indigo-500/20">
-                                <p className="text-indigo-600 text-xs font-bold uppercase tracking-widest">Total Commission (Profit)</p>
+                            <Card className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none shadow-indigo-500/20">
+                                <p className="text-indigo-100 text-xs font-bold uppercase tracking-widest">Total Commission (Profit)</p>
                                 <p className="text-4xl font-black mt-2">₹{systemEarnings?.totalCompanyEarnings?.toFixed(2) || '0'}</p>
                             </Card>
                             <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-none shadow-blue-100">
@@ -678,7 +723,7 @@ function AdminSection({
                                 />
                             </div>
                             <button onClick={handleUpdateCommission}
-                                className="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors">
+                            className="px-5 py-2.5 bg-indigo-500 hover:bg-indigo-700 active:scale-[0.97] text-white text-sm font-bold rounded-lg transition-all">
                                 Save Rates
                             </button>
                         </div>
@@ -754,7 +799,7 @@ function AdminSection({
                             if (!newLocation.trim()) return;
                             try { await addLocation(newLocation.trim()); setNewLocation(''); fetchLocations(); }
                             catch (e) { alert(e.message); }
-                        }} className="px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-600 text-white text-sm font-bold rounded-lg transition-colors shadow-sm">
+                        }} className="px-5 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] text-sm font-bold rounded-lg transition-all shadow-sm">
                             + Add
                         </button>
                     </div>
@@ -815,6 +860,93 @@ function AdminSection({
                         </div>
                     )}
                 </Card>
+            )}
+
+            {/* ── Users Tab ── */}
+            {activeTab === 'users' && (
+                <Card>
+                    <div className="flex items-center justify-between mb-5">
+                        <h3 className="font-bold text-gray-900">All Users</h3>
+                        <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full font-semibold">{allUsers.length} users</span>
+                    </div>
+                    <form onSubmit={(e) => { e.preventDefault(); fetchAllUsers(userSearch); }} className="flex gap-2 mb-4">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            <input type="text" placeholder="Search by name or email"
+                                value={userSearch} onChange={e => setUserSearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                            />
+                        </div>
+                        <button type="submit" className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors">Search</button>
+                        {userSearch && <button type="button" onClick={() => { setUserSearch(''); fetchAllUsers(''); }} className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-semibold rounded-lg transition-colors">Clear</button>}
+                    </form>
+                    {loadingUsers ? (
+                        <div className="flex justify-center py-10"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>
+                    ) : allUsers.length === 0 ? (
+                        <p className="text-center py-10 text-gray-500 text-sm">No users found</p>
+                    ) : (
+                        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+                            {allUsers.map(u => (
+                                <div key={u._id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-black text-sm shrink-0">
+                                            {u.name?.slice(0,1).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <p className="font-bold text-gray-900 text-sm">{u.name}</p>
+                                                <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide',
+                                                    u.role === 'vendor'  ? 'bg-purple-100 text-purple-700' :
+                                                    u.role === 'agent'   ? 'bg-blue-100 text-blue-700' :
+                                                    'bg-green-100 text-green-700'
+                                                )}>{u.role}</span>
+                                                {!u.isApproved && u.role !== 'user' && (
+                                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">Pending</span>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-500">{u.email}</p>
+                                            <p className="text-[10px] text-gray-400 mt-0.5">Joined: {new Date(u.createdAt).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => handleDeleteUser(u._id)}
+                                        className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 text-xs font-semibold rounded-lg transition-colors border border-red-200">
+                                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </Card>
+            )}
+
+            {/* ── Reports Tab ── */}
+            {activeTab === 'reports' && (
+                <div className="space-y-5">
+                    <div className="flex gap-2">
+                        {[['allTime', 'All Time'], ['monthly', 'Monthly'], ['weekly', 'Weekly']].map(([key, label]) => (
+                            <button key={key} onClick={() => setReportPeriod(key)}
+                                className={cn('px-4 py-2 rounded-lg text-sm font-bold transition-all',
+                                    reportPeriod === key ? 'bg-indigo-600 text-white shadow' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
+                                )}>
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    {loadingReport ? (
+                        <div className="flex justify-center py-10"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" /></div>
+                    ) : report ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            {[
+                                { label: 'Orders Delivered', value: report[reportPeriod]?.totalOrders ?? 0, accent: 'orange', icon: <Package className="w-5 h-5" /> },
+                                { label: 'Total Sales',      value: `₹${(report[reportPeriod]?.totalSales ?? 0).toFixed(0)}`, accent: 'purple', icon: <Wallet className="w-5 h-5" /> },
+                                { label: 'Net Revenue',      value: `₹${(report[reportPeriod]?.netRevenue ?? 0).toFixed(0)}`, accent: 'blue', icon: <BarChart2 className="w-5 h-5" /> },
+                                { label: 'Total Commission', value: `₹${(report[reportPeriod]?.totalCommission ?? 0).toFixed(0)}`, accent: 'green', icon: <TrendingUp className="w-5 h-5" /> },
+                            ].map(s => <StatCard key={s.label} label={s.label} value={s.value} icon={s.icon} accent={s.accent} />)}
+                        </div>
+                    ) : (
+                        <p className="text-center py-10 text-gray-500 text-sm">No report data available</p>
+                    )}
+                </div>
             )}
 
             {/* ── Settings Tab ── */}

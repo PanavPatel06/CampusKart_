@@ -170,6 +170,48 @@ const getUsersForWallet = async (req, res) => {
     res.json(users);
 }
 
+// @desc    Get admin summary report (all-time, weekly, monthly)
+// @route   GET /api/wallet/report
+// @access  Private (Admin)
+const getAdminReport = async (req, res) => {
+    try {
+        const now = new Date();
+
+        const buildStats = async (startDate) => {
+            const match = { status: 'delivered' };
+            if (startDate) match.createdAt = { $gte: startDate };
+
+            const result = await Order.aggregate([
+                { $match: match },
+                {
+                    $group: {
+                        _id: null,
+                        totalOrders:    { $sum: 1 },
+                        netRevenue:     { $sum: '$commission.company' },
+                        totalCommission:{ $sum: { $add: ['$commission.company', '$commission.delivery'] } },
+                        totalSales:     { $sum: '$totalAmount' },
+                    }
+                }
+            ]);
+
+            return result[0] || { totalOrders: 0, netRevenue: 0, totalCommission: 0, totalSales: 0 };
+        };
+
+        const weekStart  = new Date(now); weekStart.setDate(weekStart.getDate() - 7);
+        const monthStart = new Date(now); monthStart.setDate(monthStart.getDate() - 30);
+
+        const [allTime, weekly, monthly] = await Promise.all([
+            buildStats(null),
+            buildStats(weekStart),
+            buildStats(monthStart),
+        ]);
+
+        res.json({ allTime, weekly, monthly });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     addFunds,
     getWallet,
@@ -177,5 +219,6 @@ module.exports = {
     getAdminAnalytics,
     getCommissionRates,
     updateCommissionRates,
-    getUsersForWallet
+    getUsersForWallet,
+    getAdminReport,
 };

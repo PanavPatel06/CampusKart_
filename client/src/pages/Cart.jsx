@@ -126,7 +126,7 @@ const Cart = () => {
                         </div>
                     </div>
                     <div className="p-6 pt-2 flex gap-3 bg-gray-50/80">
-                        <button onClick={() => setShowConfirm(false)} className="flex-1 py-3 text-gray-500 font-bold bg-white border border-gray-200 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors">
+                        <button onClick={() => setShowConfirm(false)} className="flex-1 py-3 text-gray-500 font-bold bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-gray-800 transition-colors">
                             Cancel
                         </button>
                         <button onClick={confirmOrderPlacement} disabled={isSubmitting} className="flex-1 py-3 text-white font-bold bg-green-500 hover:bg-green-600 shadow-md shadow-green-200 rounded-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-wait">
@@ -149,7 +149,7 @@ const Cart = () => {
                         Browse the marketplace and add some products to get started.
                     </p>
                     <a href="/products"
-                        className="inline-flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-600 text-white font-semibold px-6 py-3 rounded-lg transition-colors shadow-md shadow-indigo-500/20 mt-2">
+                        className="inline-flex items-center gap-2 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] font-semibold px-6 py-3 rounded-lg transition-all shadow-md shadow-indigo-500/20 mt-2">
                         Browse Products →
                     </a>
                 </div>
@@ -169,7 +169,7 @@ const Cart = () => {
                             <h2 className="text-2xl font-black text-gray-900">Your Cart</h2>
                             <p className="text-sm text-gray-500 mt-0.5">{cartItems.length} item{cartItems.length !== 1 ? 's' : ''}</p>
                         </div>
-                        <a href="/products" className="text-sm font-semibold text-indigo-600 hover:text-indigo-600 transition-colors">
+                        <a href="/products" className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
                             ← Continue shopping
                         </a>
                     </div>
@@ -334,7 +334,7 @@ const Cart = () => {
                                 <button
                                     onClick={handleCheckout}
                                     disabled={!isAffordable || !deliveryLocation || validItems.length === 0}
-                                    className="w-full py-3 px-6 bg-indigo-600 text-white hover:bg-indigo-600 text-white active:scale-[0.98] text-white font-bold rounded-lg shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
+                                    className="w-full py-3 px-6 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] font-bold rounded-lg shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
                                 >
                                     Place Order →
                                 </button>

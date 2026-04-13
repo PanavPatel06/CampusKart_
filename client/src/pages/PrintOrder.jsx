@@ -216,7 +216,7 @@ const PrintOrder = () => {
                         )}
                         {file && !fileUrl && (
                             <button type="button" onClick={handleUpload} disabled={uploading}
-                                className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white hover:bg-indigo-600 text-white font-semibold text-sm rounded-lg transition-colors disabled:opacity-50">
+                                className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] font-semibold text-sm rounded-lg transition-all disabled:opacity-50">
                                 {uploading && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                                 {uploading ? 'Uploading…' : 'Upload File'}
                             </button>
@@ -306,7 +306,7 @@ const PrintOrder = () => {
 
                             <button type="submit"
                                 disabled={!fileUrl || !vendorId || !deliveryLocation}
-                                className="w-full py-3.5 bg-indigo-600 text-white hover:bg-indigo-600 text-white active:scale-[0.98] text-white font-bold text-base rounded-lg shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2">
+                                className="w-full py-3.5 bg-indigo-600 text-white hover:bg-indigo-700 active:scale-[0.97] font-bold text-base rounded-lg shadow-md shadow-indigo-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2">
                                 Place Print Order →
                             </button>
                         </div>

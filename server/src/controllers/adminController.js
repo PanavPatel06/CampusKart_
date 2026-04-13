@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Vendor = require('../models/Vendor');
+const Product = require('../models/Product');
 
 // @desc    Get all pending vendor and agent registrations
 // @route   GET /api/admin/users/pending
@@ -81,9 +82,63 @@ const resetSystem = async (req, res) => {
     }
 };
 
+// @desc    Get all non-admin users
+// @route   GET /api/admin/users
+// @access  Private/Admin
+const getAllUsers = async (req, res) => {
+    try {
+        const keyword = req.query.search
+            ? {
+                $or: [
+                    { name: { $regex: req.query.search, $options: 'i' } },
+                    { email: { $regex: req.query.search, $options: 'i' } },
+                ],
+            }
+            : {};
+
+        const users = await User.find({ ...keyword, role: { $ne: 'admin' } })
+            .select('-password')
+            .sort({ createdAt: -1 });
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Delete a user (with cascade for vendors)
+// @route   DELETE /api/admin/users/:id
+// @access  Private/Admin
+const deleteUser = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        if (user.role === 'admin') {
+            return res.status(403).json({ message: 'Cannot delete an admin account' });
+        }
+
+        // If vendor, remove their vendor profile and all their products
+        if (user.role === 'vendor') {
+            const vendor = await Vendor.findOne({ user: user._id });
+            if (vendor) {
+                await Product.deleteMany({ vendor: vendor._id });
+                await Vendor.findByIdAndDelete(vendor._id);
+            }
+        }
+
+        await User.findByIdAndDelete(req.params.id);
+        res.json({ message: 'User deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     getPendingUsers,
     approveUser,
     rejectUser,
     resetSystem,
+    getAllUsers,
+    deleteUser,
 };

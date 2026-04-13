@@ -77,4 +77,11 @@ export const rejectUser = (id) => API.delete(`/admin/users/${id}/reject`);
 export const getAdminAnalytics = (type = 'weekly') => API.get(`/admin/analytics?type=${type}`);
 export const resetSystem = () => API.post('/admin/reset');
 
+// Admin User Management
+export const getAllUsers = (search = '') => API.get(`/admin/users${search ? `?search=${encodeURIComponent(search)}` : ''}`);
+export const deleteUser = (id) => API.delete(`/admin/users/${id}`);
+
+// Admin Report
+export const getAdminReport = () => API.get('/wallet/report');
+
 export default API;
