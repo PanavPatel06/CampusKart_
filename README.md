@@ -88,7 +88,7 @@ sequenceDiagram
 * Cloudinary API Credentials (optional, for image/PDF upload capability)
 
 ### 1. Environment Configuration
-Create a `.env` file in the [server/](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/server) directory:
+Create a `.env` file in the [server/](./server/) directory:
 ```env
 PORT=5001
 MONGO_URI=mongodb://localhost:27017/campuskart
@@ -118,14 +118,14 @@ npm run dev
 ---
 
 ## 🔧 Developer & Maintenance Scripts
-The platform includes several backend CLI utilities located in the [server/](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/server) directory:
+The platform includes several backend CLI utilities located in the [server/](./server/) directory:
 
-* **[repair_admin.js](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/server/repair_admin.js):** Resets or seeds admin credentials to standard testing defaults:
+* **[repair_admin.js](./server/repair_admin.js):** Resets or seeds admin credentials to standard testing defaults:
   * **Admin Email:** `admin@campuskart.com` (or `admin_new@campuskart.com`)
   * **Password:** `admin123`
   ```bash
   node server/repair_admin.js
   ```
-* **[check_admin.js](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/server/check_admin.js):** Lists all administrative accounts currently saved in the database along with approval states.
-* **[verify_socket.js](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/server/verify_socket.js):** Mock-runs the Socket.IO dispatch flow to confirm real-time zone routing and audio notification readiness.
-* **[verify_full_system.js](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/server/verify_full_system.js):** Conducts end-to-end integration tests of order processing, wallet deductions, and commission disbursement logic.
+* **[check_admin.js](./server/check_admin.js):** Lists all administrative accounts currently saved in the database along with approval states.
+* **[verify_socket.js](./server/verify_socket.js):** Mock-runs the Socket.IO dispatch flow to confirm real-time zone routing and audio notification readiness.
+* **[verify_full_system.js](./server/verify_full_system.js):** Conducts end-to-end integration tests of order processing, wallet deductions, and commission disbursement logic.
