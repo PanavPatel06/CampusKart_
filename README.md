@@ -43,17 +43,6 @@ Link to website: [CampusKart](https://campuskart-pshe.onrender.com)
 * **File Hosting:** Cloudinary (for product images and print PDF storage).
 * **Deployment:** Pre-configured for Render single-instance hosting.
 
-### File Structure Key Locations
-* **Frontend Codebase:** [client/src/](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/client/src)
-  * [App.jsx](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/client/src/App.jsx): Core routes and path protections.
-  * [pages/Dashboard.jsx](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/client/src/pages/Dashboard.jsx): Multi-role client dashboard.
-  * [pages/DeliveryDashboard.jsx](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/client/src/pages/DeliveryDashboard.jsx): Delivery agent hub with real-time socket listeners.
-  * [services/api.js](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/client/src/services/api.js): Axios interceptors and API services.
-* **Backend Codebase:** [server/src/](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/server/src)
-  * [server.js](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/server/server.js): Entry point initializing HTTP server and Socket.IO.
-  * [app.js](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/server/src/app.js): Express routes and static client serving.
-  * [socket.js](file:///Users/panavpatel/Panav's Workspace/Projects/Project CampusKart/CampusKart_final/server/src/socket.js): Room management and event emission handler.
-
 ---
 
 ## 🔄 Order & Delivery Lifecycle
