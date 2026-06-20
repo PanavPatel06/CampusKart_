@@ -20,8 +20,8 @@ import { Link } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { BarChart2, ShoppingBag, Search, AlertCircle, Wallet, PackageSearch, ShieldCheck, MapPin, Package, TrendingUp, CheckCircle2, Settings, Hourglass, Printer, Truck, UserCircle, Users, Trash2, FileBarChart } from 'lucide-react';
 
-const SOCKET_URL = import.meta.env.DEV ? 'http://localhost:5001' : 'https://campuskart-hadi-vl28.onrender.com';
-const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+const SOCKET_URL = import.meta.env.DEV ? 'http://localhost:5001' : '';
+const socket = io(SOCKET_URL);
 
 // ─── helpers ──────────────────────────────────────────────────────────────
 const ROLE_LABEL = {

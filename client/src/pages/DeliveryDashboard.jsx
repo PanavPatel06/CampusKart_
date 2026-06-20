@@ -12,10 +12,8 @@ import AlertModal from '../components/ui/AlertModal';
 
 // socket initialized outside component
 // In dev, connect to local backend; in production, connect to the Render backend directly
-const SOCKET_URL = import.meta.env.DEV
-    ? 'http://localhost:5001'
-    : 'https://campuskart-hadi-vl28.onrender.com';
-const socket = io(SOCKET_URL, { transports: ['websocket', 'polling'] });
+const SOCKET_URL = import.meta.env.DEV ? 'http://localhost:5001' : '';
+const socket = io(SOCKET_URL);
 
 function cn(...c) { return c.filter(Boolean).join(' '); }
 
